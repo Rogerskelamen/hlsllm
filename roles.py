@@ -20,13 +20,6 @@ class AlgorithmWriter(Role):
     name: str = "AlgorithmWriter"
     profile: str = "algorithm writer"
 
-    def find_action_idx(self, name: str) -> int:
-        try:
-            index = [action.name for action in self.actions].index(name)
-        except ValueError:
-            index = -1
-        return index
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([WriteAlgorithm, FixCCode])
@@ -37,12 +30,14 @@ class AlgorithmWriter(Role):
         logger.info(f"msg.cause_by: {msg.cause_by}, msg.send_to: {msg.send_to}")
 
         if msg.role == "Human":
-            self._set_state(0)
+            self._set_state(self.find_state("WriteAlgorithm"))
+
         elif msg.cause_by == "actions.RunCCode":
-            self._set_state(self.find_action_idx("FixCCode"))  # FixCCode
+            self._set_state(self.find_state("FixCCode"))
+
         else:
             logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
-            self.rc.todo = None
+            self._set_state(-1)
             raise ValueError(f"Unexpected message: {msg}")
 
         return True
