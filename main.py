@@ -3,7 +3,11 @@ import fire
 from metagpt.logs import logger
 from metagpt.team import Team
 
-from roles import AlgorithmWriter
+from roles import (
+    AlgorithmWriter,
+    IORefGenerator,
+    TestCaseWriter,
+)
 from utils import read_file
 
 async def main(
@@ -16,7 +20,9 @@ async def main(
 
     team = Team()
     team.hire([
-        AlgorithmWriter()
+        AlgorithmWriter(),
+        IORefGenerator(),
+        TestCaseWriter(),
     ])
 
     team.invest(investment=investment)
