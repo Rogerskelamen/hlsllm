@@ -28,12 +28,12 @@ class WriteAlgorithm(Action):
     5. Only code is allowd in output
     """
 
-    async def run(self, algorithm_desc: str):
+    async def run(self, algorithm_desc: str, fpath: str):
         prompt = self.FULL_PROMPT.format(algorithm_desc=algorithm_desc)
 
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
-
+        write_file(code_text, fpath)
         return code_text
 
 
@@ -66,10 +66,11 @@ class WriteTestCase(Action):
     name: str = "WriteTestCase"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert, please according to the following C algorithm implementation and input-output reference data, write test cases using `assert` function to verify its correctness.
+    You are a C programming expert. Based on the given C algorithm implementation and its expected input-output reference data, write test cases using the `assert` function to verify its correctness.
 
     Requirements:
-    - Return ```c your_code_here```, NO other text
+    - Return ```c your_code_here```, NO additional text
+    - DO NOT print any messages if assertions pass
     - Include the given C algorithm implementation so the test cases are runnable.
     - Ensure all test cases match the provided input-output reference data.
     algorithem code: {code}
@@ -98,7 +99,8 @@ class RunCCode(Action):
     name: str = "RunCCode"
     async def run(self, file: str):
         result = subprocess.run([file], capture_output=True, text=True)
-        error_result = result.stderr
+        # there is no printing message so that any stdout info is a error[such as segmentation fault]
+        error_result = result.stderr + result.stdout
         logger.info(f"error_result:\n{error_result}")
         return error_result
 
@@ -107,18 +109,18 @@ class FixCCode(Action):
     name: str = "FixCCode"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert, fix the following C code according to it's runtime error message while preserving the original logic. Provide only the corrected version of the code without additional explanations.
+    You are a C programming expert. Analyze the following C code and its runtime error message, then modify the algorithm function to fix the error while preserving the original logic. Provide only the corrected version of the main function without additional explanations.
     C source code: {code}
     Error message: {error}
     """
 
-    async def run(self, file: str, error: str):
-        code = read_file(file)
+    async def run(self, test_file: str, error: str, fpath: str):
+        code = read_file(test_file)
         prompt = self.COMMON_PROMPT.format(code=code, error=error)
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
 
-        write_file(code_text, file)
+        write_file(code_text, fpath)
         return code_text
 
 

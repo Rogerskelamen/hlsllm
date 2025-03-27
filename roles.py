@@ -1,10 +1,14 @@
-import sys
-
 from metagpt.roles import Role
 from metagpt.actions import UserRequirement
 from metagpt.logs import logger
 from metagpt.roles.role import RoleReactMode
 from metagpt.schema import Message
+
+from const import (
+    IMPLEMENT_FILE_PATH,
+    IMPLEMENT_TEST_FILE_PATH,
+    IMPLEMENT_TEST_EXE_PATH,
+)
 
 from actions import (
     FixCCode,
@@ -50,13 +54,13 @@ class AlgorithmWriter(Role):
         # 获取自然语言表示，生成C代码
         if isinstance(todo, WriteAlgorithm):
             msg = self.get_memories(k=1)[0]
-            resp = await todo.run(msg.content)
+            resp = await todo.run(msg.content, fpath=IMPLEMENT_FILE_PATH)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         # 根据源代码和错误信息修正C代码
         elif isinstance(todo, FixCCode):
             error = self.get_memories(k=1)[0]
-            resp = await todo.run(file=sys.path[0] + "/impl/impl.c", error=error)  # generate 4 reference
+            resp = await todo.run(test_file=IMPLEMENT_TEST_FILE_PATH, error=error, fpath=IMPLEMENT_FILE_PATH)  # generate 4 reference
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg
@@ -98,24 +102,22 @@ class TestCaseWriter(Role):
         if isinstance(todo, WriteTestCase):
             code = self.get_memories(k=2)[0].content  # last 2 message
             ref = self.get_memories(k=1)[0].content  # last 1 message
-            resp = await todo.run(code=code, reference=ref, fpath=sys.path[0] + "/impl/impl.c")
+            resp = await todo.run(code=code, reference=ref, fpath=IMPLEMENT_TEST_FILE_PATH)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         elif isinstance(todo, CompileCCode):
-            resp = await todo.run(sys.path[0] + "/impl/impl.c", sys.path[0] + "/impl/impl")
+            resp = await todo.run(IMPLEMENT_TEST_FILE_PATH, IMPLEMENT_TEST_EXE_PATH)
             if not resp:
                 msg = Message(content="algorithm code test passed!", role=self.profile, cause_by=type(todo))
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         elif isinstance(todo, RunCCode):
-            resp = await todo.run(sys.path[0] + "/impl/impl")
+            resp = await todo.run(IMPLEMENT_TEST_EXE_PATH)
             if not resp:
                 msg = Message(content="algorithm code test passed!", role=self.profile, cause_by=type(todo))
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="AlgorithmWriter")
-
-        # logger.info(type(todo))
 
         return msg
 
