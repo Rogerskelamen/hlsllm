@@ -1,4 +1,3 @@
-import sys
 import subprocess
 
 from metagpt.actions import Action
@@ -10,8 +9,8 @@ from utils import (
     write_file
 )
 
-class WriteAlgorithm(Action):
-    name: str = "WriteAlgorithm"
+class WriteAlgorithmCode(Action):
+    name: str = "WriteAlgorithmCode"
 
     COMMON_PROMPT: str = """
     Based on the following natural language description of an algorithm, write a complete C language implementation.
@@ -38,26 +37,28 @@ class WriteAlgorithm(Action):
 
 
 
-class GenerateIORef(Action):
-    name: str = "GenerateIORef"
+class DesignIORef(Action):
+    name: str = "DesignIORef"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert, please generate {k} sets of structured input-output reference data from the following C algorithm implementation.
+    You are a C programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description.
     Each input-output reference should be presented in the following structure:
     arg1: [<value1>, <value2>, ...], arg2: [<value1>, <value2>, ...], ..., reference_out: [<expected output values>]
     """
 
     FULL_PROMPT: str = COMMON_PROMPT + """
     Make sure:
-    - The input values should be representative edge cases and typical cases.
-    - The output should be consistent with the function’s expected behavior.
+    - The input values should encompass Basic, Edge, and Large Scale scenarios as possible.
     - The format strictly follows the given structure.
-    C algorithm implementation: {algorithm_code}
+    - Pay special attention to edge cases as they often reveal hidden bugs.
+    - For large-scale tests, focus on the function's efficiency and performance under heavy loads.
+    Algorithm description: {algorithm_desc}
     """
 
-    async def run(self, algorithm_code: str, k: int = 3):
-        prompt = self.FULL_PROMPT.format(algorithm_code=algorithm_code, k=k)
+    async def run(self, algorithm_desc: str, fpath: str, k: int = 3):
+        prompt = self.FULL_PROMPT.format(algorithm_desc=algorithm_desc, k=k)
         rsp = await self._aask(prompt)
+        write_file(rsp, fpath)
         return rsp
 
 
@@ -66,19 +67,40 @@ class WriteTestCase(Action):
     name: str = "WriteTestCase"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert. Based on the given C algorithm implementation and its expected input-output reference data, write test cases using the `assert` function to verify its correctness.
+    You are a C programming expert. Based on the given algorithm description and its expected input-output reference data, write test cases using the `assert` function to verify its correctness.
 
     Requirements:
     - Return ```c your_code_here```, NO additional text
-    - DO NOT print any messages if assertions pass
-    - Include the given C algorithm implementation so the test cases are runnable.
     - Ensure all test cases match the provided input-output reference data.
-    algorithem code: {code}
+    - NO need to make the program runnable, focus on the `assert` statement.
+    Algorithm description: {algorithm_desc}
     input-output reference: {reference}
     """
 
-    async def run(self, code: str, reference: str, fpath: str):
-        prompt = self.COMMON_PROMPT.format(code=code, reference=reference)
+    async def run(self, algorithm_desc: str, reference: str):
+        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc, reference=reference)
+
+        rsp = await self._aask(prompt)
+        code_text = parse_code(rsp)
+        return code_text
+
+
+
+class WriteTestCode(Action):
+    name: str = "WriteTestCode"
+
+    COMMON_PROMPT: str = """
+    You are a C programming expert. Given an algorithm implementation and its corresponding test case code, combine them into a complete, standalone C program that can be compiled and executed.
+    - Add necessary headers, main function, and any missing declarations to make the program fully functional.
+    - Preserve the original logic of both the algorithm and the test cases.
+    - Use only assert statements for testing —- do not print any messages, output should remain empty if all tests pass.
+    - Provide only the combined and runnable C program without additional explanations.
+    Algorithm implementation: {code}
+    Test case code: {test}
+    """
+
+    async def run(self, code: str, test: str, fpath: str):
+        prompt = self.COMMON_PROMPT.format(code=code, test=test)
 
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
@@ -99,29 +121,35 @@ class RunCCode(Action):
     name: str = "RunCCode"
     async def run(self, file: str):
         result = subprocess.run([file], capture_output=True, text=True)
-        # there is no printing message so that any stdout info is a error[such as segmentation fault]
-        error_result = result.stderr + result.stdout
+        # There is no printing message so that any stdout info is a error[such as segmentation fault]
+        # So the output means tow kinds of error:
+        # 1. stderr means 
+        error_result = result.stderr
         logger.info(f"error_result:\n{error_result}")
         return error_result
+
 
 
 class FixCCode(Action):
     name: str = "FixCCode"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert. Analyze the following C code and its runtime error message, then modify the algorithm function to fix the error while preserving the original logic. Provide only the corrected version of the main function without additional explanations.
+    You are a C programming expert. Analyze the following C code and its runtime error message, then modify the algorithm function to fix the error while preserving the original logic. Provide only the corrected version of the function without additional explanations.
+    Original function code: {algo}
     C source code: {code}
     Error message: {error}
     """
 
     async def run(self, test_file: str, error: str, fpath: str):
+        algo = read_file(fpath)
         code = read_file(test_file)
-        prompt = self.COMMON_PROMPT.format(code=code, error=error)
+        prompt = self.COMMON_PROMPT.format(algo=algo, code=code, error=error)
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
 
         write_file(code_text, fpath)
         return code_text
+
 
 
 class VerifyCCode(Action):

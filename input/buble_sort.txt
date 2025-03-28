@@ -1,1 +1,1 @@
-Implement a bubble sort algorithm to sort an array of integers in ascending order
+Implement a bubble sort algorithm to sort an array of integers in ascending order. The top function name is `bubble_sort`.
