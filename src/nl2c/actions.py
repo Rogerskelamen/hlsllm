@@ -99,7 +99,8 @@ class WriteTestCode(Action):
     Test case code: {test}
     """
 
-    async def run(self, code: str, test: str, fpath: str):
+    async def run(self, file: str, test: str, fpath: str):
+        code = read_file(file)
         prompt = self.COMMON_PROMPT.format(code=code, test=test)
 
         rsp = await self._aask(prompt)
@@ -120,11 +121,14 @@ class CompileCCode(Action):
 class RunCCode(Action):
     name: str = "RunCCode"
     async def run(self, file: str):
-        result = subprocess.run([file], capture_output=True, text=True)
-        # There is no printing message so that any stdout info is a error[such as segmentation fault]
-        # So the output means tow kinds of error:
-        # 1. stderr means 
-        error_result = result.stderr
+        runtime_result = subprocess.run([file], capture_output=True, text=True)
+        """
+        Actually, there is two kinds of error in runtime
+        1. cause by assertion failed(given by stderr)
+        2. cause by kernel print error[such as segmentation fault]
+        But it can only get errors from stderr or stdout
+        """
+        error_result = runtime_result.stderr
         logger.info(f"error_result:\n{error_result}")
         return error_result
 
@@ -168,4 +172,6 @@ class VerifyCCode(Action):
         prompt = self.COMMON_PROMPT.format(code=code)
         rsp = await self._aask(prompt)
         return rsp
+
+
 

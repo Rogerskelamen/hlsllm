@@ -3,11 +3,12 @@ import fire
 from metagpt.logs import logger
 from metagpt.team import Team
 
-from roles import (
+from nl2c.roles import (
     CCodeProgrammer,
     CTestDesigner,
     CTestExecutor,
 )
+
 from utils import read_file
 
 async def main(
