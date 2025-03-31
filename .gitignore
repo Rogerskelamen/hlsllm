@@ -6,3 +6,4 @@
 !.gitignore
 !input/*.txt
 !Makefile
+!requirements.txt

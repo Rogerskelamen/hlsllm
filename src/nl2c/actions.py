@@ -43,7 +43,7 @@ class DesignIORef(Action):
     COMMON_PROMPT: str = """
     You are a C programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description.
     Each input-output reference should be presented in the following structure:
-    arg1: [<value1>, <value2>, ...], arg2: [<value1>, <value2>, ...], ..., reference_out: [<expected output values>]
+    arg1: [<value1>, <value2>, ...], [arg2: [<value1>, <value2>, ...], ...,] reference_out: [<expected output values>]
     """
 
     FULL_PROMPT: str = COMMON_PROMPT + """
@@ -156,15 +156,12 @@ class FixCCode(Action):
 
 
 
-class VerifyCCode(Action):
-    name: str = "VerifyCCode"
+class VerifyIORef(Action):
+    name: str = "VerifyIORef"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert, please carefully analyze the following C cdoe.
-    1. Check for syntax errors and undefined behavior.
-    2. Identify common mistakes such as missing semicolons, incorrect data types, and improper memory management.
-    3. Ensure compliance with C standards (C99/C11, specify if needed).
-    4. If errors are found, provide detailed explanations and suggest corrected versions of the problematic parts.
+    You are a C programming expert, please carefully analyze the following input-output reference data.
+    1. make sure the number of args is correct
     C code: {code}
     """
 

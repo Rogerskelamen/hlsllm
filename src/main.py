@@ -12,7 +12,7 @@ from nl2c.roles import (
 from utils import read_file
 
 async def main(
-    algo_file: str = "./input/buble_sort.txt",
+    algo_file: str = "../input/buble_sort.txt",
     investment: float = 3.0,
     n_round: int = 5,
 ):
