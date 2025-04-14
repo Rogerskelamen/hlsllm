@@ -132,8 +132,8 @@ class CTestExecutor(Role):
             resp += compile_error
 
             if not resp:
-                logger.info(f"{self._setting}: algorithm code test passed!")
-                msg = Message(content="algorithm code test passed!", role=self.profile, cause_by=type(todo))
+                logger.info(f"{self._setting}: algorithm code tests all passed!")
+                msg = Message(content="algorithm code tests all passed!", role=self.profile, cause_by=type(todo))
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CCodeProgrammer")
 

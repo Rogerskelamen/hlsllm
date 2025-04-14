@@ -1,1 +1,8 @@
-Implement a bubble sort algorithm to sort an array of integers in ascending order. The top function name is `bubble_sort`.
+Implement bubble sorting algorithm to sort an array of integers in ascending order. The array size is 5.
+
+The function prototye:
+
+```c
+bubble_sort(int array[SIZE]);
+```
+

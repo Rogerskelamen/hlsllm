@@ -7,3 +7,4 @@
 !input/*.txt
 !Makefile
 !requirements.txt
+!rag/*
