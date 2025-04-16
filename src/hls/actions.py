@@ -1,5 +1,6 @@
+import subprocess
+
 from metagpt.actions import Action
-from metagpt.logs import logger
 
 from hls.rag import RAGCodeStyle
 from utils import parse_code, read_file, write_file
@@ -47,4 +48,31 @@ class RepairHLSCode(Action):
 class SynthHLSCode(Action):
     name: str = "SynthHLSCode"
 
+    SET_PROJ_TCL: str = """
+    open_project {proj_name}
+    set_top {top_func}
+    add_files {src_file}
+    open_solution solution1
+    set_part {part}
+    create_clock -period 10 -name default
+    csynth_design
+    exit
+    """
 
+    async def run(self, proj_name: str, top_func: str, src_file: str, part: str, tcl_file: str):
+        tcl = self.SET_PROJ_TCL.format(
+            proj_name=proj_name,
+            top_func=top_func,
+            src_file=src_file,
+            part=part
+        ).strip()
+        write_file(tcl, tcl_file)
+        cmd = ["vitis_hls", "-f", tcl_file]
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print("✅ Synthesis Completed Successfully!\n")
+            return None
+        except subprocess.CalledProcessError as e:
+            print("❌ Synthesis Failed.")
+            # 综合失败，处理输出结果
+            return e.stdout

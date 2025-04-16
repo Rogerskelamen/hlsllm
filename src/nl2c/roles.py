@@ -9,6 +9,7 @@ from const import (
     IMPLEMENT_TEST_FILE_PATH,
     IMPLEMENT_TEST_EXE_PATH,
     REFERENCE_FILE_PATH,
+    TOP_FUNCTION_FILE,
 )
 
 from nl2c.actions import (
@@ -20,6 +21,7 @@ from nl2c.actions import (
     CompileCCode,
     RunCCode,
 )
+from utils import extract_func_name, write_file
 
 
 class CCodeProgrammer(Role):
@@ -55,6 +57,7 @@ class CCodeProgrammer(Role):
         if isinstance(todo, WriteAlgorithmCode):
             msg = self.get_memories(k=1)[0]
             resp = await todo.run(msg.content, fpath=IMPLEMENT_FILE_PATH)
+            write_file(extract_func_name(msg.content), TOP_FUNCTION_FILE)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         # 根据源代码和错误信息修正C代码

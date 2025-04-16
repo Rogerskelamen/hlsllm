@@ -3,7 +3,7 @@ import fire
 from metagpt.logs import logger
 from metagpt.team import Team
 
-from hls.roles import HLSEngineer
+from hls.roles import HLSEngineer, HLSToolAssistant
 from nl2c.roles import (
     CCodeProgrammer,
     CTestDesigner,
@@ -26,6 +26,7 @@ async def main(
         CTestDesigner(),
         CTestExecutor(),
         HLSEngineer(),
+        HLSToolAssistant(),
     ])
 
     team.invest(investment=investment)

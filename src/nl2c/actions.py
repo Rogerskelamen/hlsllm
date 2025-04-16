@@ -13,7 +13,7 @@ class WriteAlgorithmCode(Action):
     name: str = "WriteAlgorithmCode"
 
     COMMON_PROMPT: str = """
-    Based on the following natural language description of an algorithm, write a complete C language implementation.
+    Based on the following natural language description of an algorithm, write a complete C++ language implementation.
     The code should include only the function implementation without a main function or test code.
     Algorithm description: {algorithm_desc}
     """
@@ -23,7 +23,7 @@ class WriteAlgorithmCode(Action):
     1. Implement only the function corresponding to the given algorithm, without a main function or test code.
     2. Include neccessary `#include` directives **only if the implementation uses standard library functions**. DO NOT include unnecessary headers.
     3. Add clear comments explaining key parts of the implementation.
-    4. Ensure the code follows C programming best practices, making it reusable and readable
+    4. Ensure the code follows C++ programming best practices, making it reusable and readable
     5. Only code is allowd in output
     """
 
@@ -41,7 +41,7 @@ class DesignIORef(Action):
     name: str = "DesignIORef"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description.
+    You are a C++ programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description.
     Each input-output reference should be presented in the following structure:
     arg1: [<value1>, <value2>, ...], [arg2: [<value1>, <value2>, ...], ...,] reference_out: [<expected output values>]
     """
@@ -67,10 +67,10 @@ class WriteTestCase(Action):
     name: str = "WriteTestCase"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert. Based on the given algorithm description and its expected input-output reference data, write test cases using the `assert` function to verify its correctness.
+    You are a C++ programming expert. Based on the given algorithm description and its expected input-output reference data, write test cases using the `assert` function to verify its correctness.
 
     Requirements:
-    - Return ```c your_code_here```, NO additional text
+    - Return ```cpp your_code_here```, NO additional text
     - Ensure all test cases match the provided input-output reference data.
     - NO need to make the program runnable, focus on the `assert` statement.
     Algorithm description: {algorithm_desc}
@@ -90,11 +90,11 @@ class WriteTestCode(Action):
     name: str = "WriteTestCode"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert. Given an algorithm implementation and its corresponding test case code, combine them into a complete, standalone C program that can be compiled and executed.
+    You are a C++ programming expert. Given an algorithm implementation and its corresponding test case code, combine them into a complete, standalone C++ program that can be compiled and executed.
     - Add necessary headers, main function, and any missing declarations to make the program fully functional.
     - Preserve the original logic of both the algorithm and the test cases.
     - Use only assert statements for testing —- do not print any messages, output should remain empty if all tests pass.
-    - Provide only the combined and runnable C program without additional explanations.
+    - Provide only the combined and runnable C++ program without additional explanations.
     Algorithm implementation: {code}
     Test case code: {test}
     """
@@ -112,7 +112,7 @@ class WriteTestCode(Action):
 class CompileCCode(Action):
     name: str = "CompileCCode"
     async def run(self, src: str, out: str):
-        compile_result = subprocess.run(["gcc", src, "-o", out], capture_output=True, text=True)
+        compile_result = subprocess.run(["g++", src, "-o", out], capture_output=True, text=True)
         error_result = compile_result.stderr
         logger.info(f"error_result:\n{error_result}")
         return error_result
@@ -138,9 +138,9 @@ class FixCCode(Action):
     name: str = "FixCCode"
 
     COMMON_PROMPT: str = """
-    You are a C programming expert. Analyze the following C code and its runtime error message, then modify the algorithm function to fix the error while preserving the original logic. Provide only the corrected version of the function without additional explanations.
+    You are a C++ programming expert. Analyze the following C++ code and its runtime error message, then modify the algorithm function to fix the error while preserving the original logic. Provide only the corrected version of the function without additional explanations.
     Original function code: {algo}
-    C source code: {code}
+    C++ source code: {code}
     Error message: {error}
     """
 
@@ -162,13 +162,12 @@ class VerifyIORef(Action):
     COMMON_PROMPT: str = """
     You are a C programming expert, please carefully analyze the following input-output reference data.
     1. make sure the number of args is correct
-    C code: {code}
+    C++ code: {code}
     """
 
     async def run(self, code: str):
         prompt = self.COMMON_PROMPT.format(code=code)
         rsp = await self._aask(prompt)
         return rsp
-
 
 

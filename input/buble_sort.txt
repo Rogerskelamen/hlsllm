@@ -2,7 +2,7 @@ Implement bubble sorting algorithm to sort an array of integers in ascending ord
 
 The function prototye:
 
-```c
-bubble_sort(int array[SIZE]);
+```cpp
+void bubble_sort(int array[SIZE]);
 ```
 
