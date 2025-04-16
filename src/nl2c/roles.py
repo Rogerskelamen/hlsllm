@@ -47,7 +47,6 @@ class CCodeProgrammer(Role):
 
         return True
 
-
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
         todo = self.rc.todo
@@ -131,9 +130,12 @@ class CTestExecutor(Role):
             compile_error = self.get_memories(k=1)[0].content
             resp += compile_error
 
+            # 测试程序编译和运行通过
             if not resp:
                 logger.info(f"{self._setting}: algorithm code tests all passed!")
-                msg = Message(content="algorithm code tests all passed!", role=self.profile, cause_by=type(todo))
+                msg = Message(content="algorithm code tests all passed!", role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
+
+            # 测试未通过，返回给Programmer
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CCodeProgrammer")
 

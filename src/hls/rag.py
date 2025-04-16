@@ -3,7 +3,6 @@ from metagpt.rag.engines.simple import SentenceSplitter
 from metagpt.rag.schema import CohereRerankConfig, ColbertRerankConfig, FAISSIndexConfig, FAISSRetrieverConfig, BM25RetrieverConfig
 from metagpt.logs import logger
 
-from llama_index.core.base.response.schema import RESPONSE_TYPE
 from llama_index.core.schema import QueryType
 
 from const import COHERE_API_KEY, RAG_CODE_STYLE_PATH, RAG_CODE_STYLE_PERSIST_DIR
@@ -46,13 +45,18 @@ class RAGCodeStyle:
                 input_files=self.dataset_files,
                 retriever_configs=[FAISSRetrieverConfig()],
                 ranker_configs=[CohereRerankConfig(api_key=COHERE_API_KEY)],
-                transformations=[SentenceSplitter(chunk_size=1024, chunk_overlap=0)],
+                # transformations=[SentenceSplitter(chunk_size=1024, chunk_overlap=0)],
+                # 过大的chunk_size会造成计算索引时内存过大
+                transformations=[SentenceSplitter(chunk_size=512, chunk_overlap=32)],
             )
             self.engine.persist(self.persist_dir)
 
         self.__class__._initialized = True
 
 
-    async def aquery(self, str_or_query_bundle: QueryType) -> RESPONSE_TYPE:
-        return await self.engine.aquery(str_or_query_bundle)
+    async def aask(self, str_or_query_bundle: QueryType) -> str:
+        query_result = await self.engine.aquery(str_or_query_bundle)
+        resp = query_result.response
+        print(resp)
+        return resp
 
