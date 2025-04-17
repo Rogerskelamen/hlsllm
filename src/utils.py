@@ -8,7 +8,11 @@ def parse_code(rsp: str):
 
 
 def read_file(path: str) -> str:
-    """读取文件内容并返回字符串类型"""
+    """读取文件内容并返回内容的字符串形式
+
+    Args:
+        path (str): The file path to read from.
+    """
     try:
         with open(path, "r", encoding="utf-8") as f:
             return f.read()

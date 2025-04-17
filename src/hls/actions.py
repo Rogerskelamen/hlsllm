@@ -1,4 +1,5 @@
 import subprocess
+import textwrap
 
 from metagpt.actions import Action
 
@@ -11,10 +12,14 @@ class CheckHLSSpec(Action):
 
     COMMON_PROMPT: str = """
     You are an expert in Vitis HLS. Given the following C/C++ algorithm code intended for HLS synthesis, analyze its structure and syntax specifically for synthesizability.
+
+    [C/C++ algorithm code]
+    {code}
+
+    [Requirements]
     - Identify any parts of the code that are not synthesizable by Vitis HLS (e.g., unsupported constructs, improper use of pointers, dynamic memory allocation, recursion, or unsupported library functions).
     - Explain clearly why each issue would cause synthesis to fail.
     - Suggest precise modifications or alternatives to make the code synthesizable while preserving its intended functionality.
-    C/C++ algorithm code: {code}
     """
 
     async def run(self, file: str):
@@ -29,11 +34,15 @@ class RepairHLSCode(Action):
 
     COMMON_PROMPT: str = """
     You are an expert in Vitis HLS. Given the following C/C++ algorithm code, modify it as needed to ensure it is fully synthesizable using Vitis HLS, in strict compliance with HLS synthesis standards.
+
+    [C/C++ algorithm code]
+    {code}
+
+    [Requirements]
     - Fix any non-synthesizable constructs.
     - Replace unsupported operations or patterns.
     - Preserve the original functionality as much as possible.
-    Output only the corrected C/C++ code. Do not include any explanation.
-    C/C++ algorithm code: {code}
+    - Return ```cpp your_code_here```, NO additional text
     """
 
     async def run(self, file: str, out: str):
@@ -45,10 +54,11 @@ class RepairHLSCode(Action):
         return code_text
 
 
+
 class SynthHLSCode(Action):
     name: str = "SynthHLSCode"
 
-    SET_PROJ_TCL: str = """
+    SET_PROJ_TCL: str = textwrap.dedent("""
     open_project {proj_name}
     set_top {top_func}
     add_files {src_file}
@@ -57,7 +67,7 @@ class SynthHLSCode(Action):
     create_clock -period 10 -name default
     csynth_design
     exit
-    """
+    """)
 
     async def run(self, proj_name: str, top_func: str, src_file: str, part: str, tcl_file: str):
         tcl = self.SET_PROJ_TCL.format(
@@ -67,6 +77,7 @@ class SynthHLSCode(Action):
             part=part
         ).strip()
         write_file(tcl, tcl_file)
+
         cmd = ["vitis_hls", "-f", tcl_file]
         try:
             subprocess.run(cmd, capture_output=True, text=True, check=True)

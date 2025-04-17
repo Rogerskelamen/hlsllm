@@ -1,4 +1,5 @@
 import fire
+import os
 
 from metagpt.logs import logger
 from metagpt.team import Team
@@ -17,6 +18,9 @@ async def main(
     investment: float = 3.0,
     n_round: int = 10,
 ):
+    # preprocess
+    os.environ["TOKENIZERS_PARALLELISM"] = "false"
+
     algorithm = read_file(algo_file)
     logger.info(f"the certain algorithm: {algorithm}")
 
