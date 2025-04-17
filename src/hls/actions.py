@@ -33,7 +33,7 @@ class RepairHLSCode(Action):
     name: str = "RepairHLSCode"
 
     COMMON_PROMPT: str = """
-    You are an expert in Vitis HLS. Given the following C/C++ algorithm code, modify it as needed to ensure it is fully synthesizable using Vitis HLS, in strict compliance with HLS synthesis standards.
+    You are an hardware expert in Vitis HLS. Given the following C/C++ algorithm code, modify it as needed to ensure it is fully synthesizable using Vitis HLS, in strict compliance with HLS synthesis standards.
 
     [C/C++ algorithm code]
     {code}
@@ -51,6 +51,36 @@ class RepairHLSCode(Action):
         rsp = await RAGCodeStyle().aask(prompt)
         code_text = parse_code(rsp)
         write_file(code_text, out)
+        return code_text
+
+
+class FixHLSCode(Action):
+    name: str = "FixHLSCode"
+
+    COMMON_PROMPT: str = """
+    You are an hardware expert in Vitis HLS, and skilled in analyzing HLS synthesis logs and C/C++ source code to identify the causes of synthesis failures and fix the original C/C++ code.
+
+    [Task]
+    Given the following C/C++ source code and the synthesis failure log from Vitis HLS, analyze the cause of the failure and generate a corrected version of the code that can successfully be synthesized.
+
+    [C/C++ algorithm code]
+    {code}
+
+    [Synthesis Message]
+    {msg}
+
+    [Requirements]
+    - The generated code must be synthesizable with Vitis HLS without errors.
+    - Preserve the original algorithm functionality.
+    - Return ```cpp your_code_here```, NO additional text
+    """
+
+    async def run(self, file: str, msg: str):
+        code = read_file(file)
+        prompt = self.COMMON_PROMPT.format(code=code, msg=msg)
+        rsp = await RAGCodeStyle().aask(prompt)
+        code_text = parse_code(rsp)
+        write_file(code_text, file)
         return code_text
 
 
@@ -87,3 +117,43 @@ class SynthHLSCode(Action):
             print("❌ Synthesis Failed.")
             # 综合失败，处理输出结果
             return e.stdout
+
+
+
+
+"""
+这个动作待优化，在该动作之前可以进行一些预处理或者分析操作，比如：
+1. 对复杂算法进行拆分，单函数 -> 多个子函数
+2. 分析C++代码中计算量大的部分(分析工具)，针对性优化
+3. 使用更高抽象的角度分析函数的调用来对硬件实现进行优化
+
+同样的，在优化动作之后，也可以采用一些措施提高优化程度，比如：
+1. 使用DSE(设计空间探索)工具来分析可用优化
+"""
+class OptimizeHLSPerf(Action):
+    name: str = "OptimizeHLSPerf"
+
+    COMMON_PROMPT: str = """
+    You are an expert in Vitis HLS and hardware acceleration, with the skill to analyze HLS code and improve hardware performance.
+
+    [Task]
+    Analyze the following C++ HLS code and optimize it for better performance using appropriate HLS pragmas (such as #pragma HLS PIPELINE, UNROLL, ARRAY_PARTITION, etc.) without changing its functionality.
+
+    [C++ HLS Code]
+    {code}
+
+    [Requirements]
+    - Identify and explain potential performance bottlenecks
+    - Apply optimization techniques and relevant HLS pragmas
+    - DO preserve original functionality
+    - Ouput the optimized code only, NO other explanation text
+    - Return ```cpp your_code_here```, NO additional text
+    """
+
+    async def run(self, file: str, code: str, out: str):
+        code = read_file(file)
+        prompt = self.COMMON_PROMPT.format(code=code)
+        rsp = await RAGCodeStyle().aask(prompt)
+        code_text = parse_code(rsp)
+        write_file(code_text, out)
+        return code_text

@@ -11,7 +11,7 @@ from const import (
     TOP_FUNCTION_FILE,
 )
 
-from hls.actions import RepairHLSCode, SynthHLSCode
+from hls.actions import FixHLSCode, OptimizeHLSPerf, RepairHLSCode, SynthHLSCode
 from utils import read_file
 
 
@@ -21,7 +21,7 @@ class HLSEngineer(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([RepairHLSCode])
+        self.set_actions([RepairHLSCode, FixHLSCode])
         self._watch([])
 
     async def _think(self) -> bool:
@@ -29,6 +29,10 @@ class HLSEngineer(Role):
 
         if msg.cause_by == "nl2c.actions.RunCCode":
             self._set_state(self.find_state("RepairHLSCode"))
+
+        elif msg.cause_by == "hls.actions.SynthHLSCode":
+            self._set_state(self.find_state("FixHLSCode"))
+
         else:
             self._set_state(-1)
             logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
@@ -44,6 +48,11 @@ class HLSEngineer(Role):
             resp = await todo.run(IMPLEMENT_FILE_PATH, HLS_SRC_CODE_FILE)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
+        elif isinstance(todo, FixHLSCode):
+            msg = self.get_memories(k=1)[0]
+            resp = await todo.run(HLS_SRC_CODE_FILE, msg)
+            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
+
         return msg
 
 
@@ -54,13 +63,14 @@ class HLSToolAssistant(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([SynthHLSCode])
-        self._watch([RepairHLSCode])
+        self._watch([RepairHLSCode, FixHLSCode])
 
     async def _think(self) -> bool:
         msg = self.get_memories(k=1)[0]
 
-        if msg.cause_by == "hls.actions.RepairHLSCode":
+        if msg.cause_by == "hls.actions.RepairHLSCode" or "hls.actions.FixHLSCode":
             self._set_state(self.find_state("SynthHLSCode"))
+
         else:
             self._set_state(-1)
             logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
@@ -97,3 +107,8 @@ class HLSToolAssistant(Role):
 class HLSPerfAnalyzer(Role):
     name: str = "HLSPerfAnalyzer"
     profile: str = "hls performance analyzer"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.set_action([OptimizeHLSPerf])
+        self._watch([])
