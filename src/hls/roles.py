@@ -69,10 +69,10 @@ class HLSToolAssistant(Role):
     async def _think(self) -> bool:
         msg = self.get_memories(k=1)[0]
 
-        if msg.cause_by == "hls.actions.RepairHLSCode" or "hls.actions.FixHLSCode":
+        if msg.cause_by in ("hls.actions.RepairHLSCode", "hls.actions.FixHLSCode"):
             self._set_state(self.find_state("SynthHLSCode"))
 
-        elif msg.cause_by == "hls.actions.OptimizeHLSPerf" or "hls.actions.FixHLSOpt":
+        elif msg.cause_by in ("hls.actions.OptimizeHLSPerf", "hls.actions.FixHLSOpt"):
             self._set_state(self.find_state("SynthHLSOpt"))
 
         else:
@@ -132,7 +132,7 @@ class HLSPerfAnalyzer(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_action([OptimizeHLSPerf, FixHLSOpt])
+        self.set_actions([OptimizeHLSPerf, FixHLSOpt])
         self._watch([])
 
     async def _think(self) -> bool:
@@ -141,7 +141,7 @@ class HLSPerfAnalyzer(Role):
         if msg.cause_by == "hls.actions.SynthHLSCode":
             self._set_state(self.find_state("OptimizeHLSPerf"))
 
-        if msg.cause_by == "hls.actions.SynthHLSOpt":
+        elif msg.cause_by == "hls.actions.SynthHLSOpt":
             self._set_state(self.find_state("FixHLSOpt"))
 
         else:
@@ -156,10 +156,12 @@ class HLSPerfAnalyzer(Role):
         logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
         todo = self.rc.todo
 
+        # 优化HLS代码
         if isinstance(todo, OptimizeHLSPerf):
             resp = await todo.run(HLS_SRC_CODE_FILE, HLS_OPT_CODE_FILE)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
+        # 优化的HLS代码综合失败，进行修复步骤
         elif isinstance(todo, FixHLSOpt):
             msg = self.get_memories(k=1)[0]
             resp = await todo.run(HLS_OPT_CODE_FILE, msg)

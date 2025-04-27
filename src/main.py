@@ -4,7 +4,7 @@ import os
 from metagpt.logs import logger
 from metagpt.team import Team
 
-from hls.roles import HLSEngineer, HLSToolAssistant
+from hls.roles import HLSEngineer, HLSPerfAnalyzer, HLSToolAssistant
 from nl2c.roles import (
     CCodeProgrammer,
     CTestDesigner,
@@ -16,7 +16,7 @@ from utils import read_file
 async def main(
     algo_file: str = "../input/buble_sort.txt",
     investment: float = 3.0,
-    n_round: int = 10,
+    n_round: int = 12,
 ):
     # preprocess
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
@@ -31,6 +31,7 @@ async def main(
         CTestExecutor(),
         HLSEngineer(),
         HLSToolAssistant(),
+        HLSPerfAnalyzer(),
     ])
 
     team.invest(investment=investment)
@@ -44,12 +45,13 @@ if __name__ == "__main__":
 
 # import asyncio
 #
-# from hls.rag import RAGCodeStyle
+# from hls.rag import RAGCodeStyle, RAGOptTech
 #
 # async def main():
-#     answer = await RAGCodeStyle().aquery("What are unsupported C/C++ Constructs in Vitis HLS development?")
-#     print(answer.response)
+#     # answer = await RAGOptTech().aask("List some optimization technologies for Vitis HLS")
+#     answer = await RAGCodeStyle().aask("What are unsupported C/C++ Constructs in Vitis HLS development?")
+#     # print(answer)
 #
 # if __name__ == "__main__":
 #     asyncio.run(main())
-
+#

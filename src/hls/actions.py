@@ -3,7 +3,7 @@ import textwrap
 
 from metagpt.actions import Action
 
-from hls.rag import RAGCodeStyle
+from hls.rag import RAGCodeStyle, RAGOptTech
 from utils import parse_code, read_file, write_file
 
 
@@ -123,7 +123,7 @@ class SynthHLSCode(Action):
 class SynthHLSOpt(Action):
     name: str = "SynthHLSOpt"
 
-    RUN_TCL: str = textwrap.dedent("""
+    SET_PROJ_TCL: str = textwrap.dedent("""
     open_project {proj_name}
     set_top {top_func}
     add_files {src_file}
@@ -188,7 +188,7 @@ class OptimizeHLSPerf(Action):
     async def run(self, file: str, out: str):
         code = read_file(file)
         prompt = self.COMMON_PROMPT.format(code=code)
-        rsp = await RAGCodeStyle().aask(prompt)
+        rsp = await RAGOptTech().aask(prompt)
         code_text = parse_code(rsp)
         write_file(code_text, out)
         return code_text
@@ -218,7 +218,7 @@ class FixHLSOpt(Action):
     async def run(self, file: str, msg: str):
         code = read_file(file)
         prompt = self.COMMON_PROMPT.format(code=code, msg=msg)
-        rsp = await RAGCodeStyle().aask(prompt)
+        rsp = await RAGOptTech().aask(prompt)
         code_text = parse_code(rsp)
         write_file(code_text, file)
         return code_text
