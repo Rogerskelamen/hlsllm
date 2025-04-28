@@ -6,6 +6,12 @@ def parse_code(rsp: str):
     code_text = match.group(1) if match else rsp
     return code_text.strip()
 
+def parse_json(rsp: str):
+    pattern = r"```json(.*)```"
+    match = re.search(pattern, rsp, re.DOTALL)
+    code_text = match.group(1) if match else rsp
+    return code_text.strip()
+
 
 def read_file(path: str) -> str:
     """读取文件内容并返回内容的字符串形式

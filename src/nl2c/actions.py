@@ -5,6 +5,7 @@ from metagpt.logs import logger
 
 from utils import (
     parse_code,
+    parse_json,
     read_file,
     write_file
 )
@@ -41,27 +42,47 @@ class DesignIORef(Action):
     name: str = "DesignIORef"
 
     COMMON_PROMPT: str = """
-    You are a C++ programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description.
+    You are a C++ programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description. The output should follow json structure.
 
     [Algorithm description]
     {algorithm_desc}
 
-    Each input-output reference should be presented in the following structure:
-    arg1: [<value1>, <value2>, ...], [arg2: [<value1>, <value2>, ...], ...,] reference_out: [<expected output values>]
-    """
+    [Output Format]
+    ```
+    {{
+      "test_cases": [
+        {{
+          "name": "<case name>",
+          "input": {{
+            "arg1": [...],
+            "arg2": [...]
+          }},
+          "reference_out": [...]
+        }},
+        ...
+      ]
+    }}
+    ```
 
-    FULL_PROMPT: str = COMMON_PROMPT + """
+    [Output Field Explanation]
+    "name": A short identifier for the test case (e.g., "basic", "edge_case", "large_scale_case").
+    "input": A dictionary of input arguments.
+    "reference_out": Expected result computed strictly.
+
     [Requirements]
+    - Each test must contain input arguments and the reference output.
     - The input values should encompass Basic, Edge, and Large Scale scenarios as possible.
-    - The format strictly follows the given structure.
-    - Pay special attention to edge cases as they often reveal hidden bugs.
-    - For large-scale tests, focus on the function's efficiency and performance under heavy loads.
+    - All reference_out values must be accurately computed according to the algorithm, not guessed.
+        - For non-trivial operations (e.g., matrix multiplication), internally show intermediate computation steps first, and then output the final result.
+        - If unable to guarantee correctness, prefer simpler cases.
+    - The format strictly follows the given JSON structure.
+    - Return ```json your_code_here```, NO additional text
     """
 
     async def run(self, algorithm_desc: str, fpath: str, k: int = 3):
-        prompt = self.FULL_PROMPT.format(algorithm_desc=algorithm_desc, k=k)
+        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc, k=k)
         rsp = await self._aask(prompt)
-        write_file(rsp, fpath)
+        write_file(parse_json(rsp), fpath)
         return rsp
 
 
@@ -70,7 +91,7 @@ class WriteTestCase(Action):
     name: str = "WriteTestCase"
 
     COMMON_PROMPT: str = """
-    You are a C++ programming expert. Based on the given algorithm description and its expected input-output reference data, write test cases using the `assert` function to verify its correctness.
+    You are a C++ programming expert. Based on the given algorithm description and the provided input-output reference data in JSON format, generate C++ test cases using the `assert` function to verify its correctness.
 
     [Algorithm description]
     {algorithm_desc}

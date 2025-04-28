@@ -1,0 +1,7 @@
+Implement matrix multiplication for two square matrices A and B, both of size N × N, where N = 5. The function should compute the product of matrices A and B, and store the result in matrix C.
+
+The function prototype:
+
+```cpp
+void mat_mul(int A[N][N], int B[N][N], int C[N][N]);
+```

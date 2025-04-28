@@ -1,0 +1,14 @@
+Implement a Finite Impulse Response (FIR) filter that processes one input sample at a time and produces one output sample.
+The filter should maintain an internal shift register to store the most recent input samples.
+Each new input updates the shift register and produces a new output, calculated as the sum of products between the shift register values and the filter coefficients.
+
+Assume the number of taps (coefficients) is N = 11, and coefficients is given in the function.
+
+Header of function:
+
+```cpp
+void fir(int *y, int x) {
+  int c[N] = {
+    53, 0, −91, 0, 313, 500, 313, 0, −91, 0, 53
+  };
+```
