@@ -1,4 +1,8 @@
 import re
+import os
+import subprocess
+
+from const import TARGET_ALGO_DIR
 
 def parse_code(rsp: str):
     pattern = r"```cpp(.*)```"
@@ -39,6 +43,15 @@ def write_file(content: str, path: str) -> None:
             file.write(content)
     except Exception as e:
         print(f"Error writing to file {path}: {e}")
+
+
+def pre_handle_testbench(path: str) -> str:
+    # 1. copy testbench
+    subprocess.run(["cp", path, "-r", TARGET_ALGO_DIR])
+    # 2. remove algorithm source file
+    algo_name = os.path.basename(path.rstrip('/'))
+    subprocess.run(["rm", TARGET_ALGO_DIR / (algo_name + ".cpp")])
+    return algo_name
 
 
 def extract_func_name(input: str) -> str:

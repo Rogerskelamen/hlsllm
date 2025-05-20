@@ -1,152 +1,56 @@
+import os
 import subprocess
+from typing import List
 
 from metagpt.actions import Action
 from metagpt.logs import logger
 
 from utils import (
     parse_code,
-    parse_json,
     read_file,
     write_file
 )
+
 
 class WriteAlgorithmCode(Action):
     name: str = "WriteAlgorithmCode"
 
     COMMON_PROMPT: str = """
-    You are an expert in C++ programming and algorithms, with a strong background in hardware, and are skilled at translating algorithm descriptions in natural language into corresponding C++ code.
-    Based on the following natural language description of an algorithm, write a complete C++ function implementation.
+    You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware. You excel at translating algorithm descriptions written in natural language into synthesizable C++ code suitable for HLS tools.
+    Please generate a complete and self-contained C++ function implementation based on the following information:
 
     [Algorithm description]
     {algorithm_desc}
 
+    [Header file]
+    {header_file}
+
     [Requirements]
-    - Implement only the function corresponding to the given algorithm, without a main function or any test code.
-    - Include neccessary `#include` directives **only if the implementation uses standard library functions**. DO NOT include unnecessary headers.
+    - Include the specified header file using `#include "{header_name}`.
+    - Implement only the function described in the algorithm, without any main function, test code, or additional unrelated content.
+    - ONLY include standard library headers if they are required by the implementation.
+    - DO NOT add any HLS directives at this stage.
     - Add clear comments explaining key parts of the implementation.
     - Ensure the code follows C++ programming best practices, making it reusable and readable.
     - Return ```cpp your_code_here```, NO additional text.
     """
 
-    async def run(self, algorithm_desc: str, fpath: str):
-        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc)
+    async def run(self, algorithm_desc: str, header_file: str, fpath: str):
+        header_name = os.path.basename(header_file)
+        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc, header_file=read_file(header_file), header_name=header_name)
 
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
         write_file(code_text, fpath)
         return code_text
 
-
-
-class DesignIORef(Action):
-    name: str = "DesignIORef"
-
-    COMMON_PROMPT: str = """
-    You are a C++ programming expert, please generate {k} sets of structured input-output reference data from the following algorithm description. The output should follow json structure.
-
-    [Algorithm description]
-    {algorithm_desc}
-
-    [Output Format]
-    ```
-    {{
-      "test_cases": [
-        {{
-          "name": "<case name>",
-          "input": {{
-            "arg1": [...],
-            "arg2": [...]
-          }},
-          "reference_out": [...]
-        }},
-        ...
-      ]
-    }}
-    ```
-
-    [Output Field Explanation]
-    "name": A short identifier for the test case (e.g., "basic", "edge_case", "large_scale_case").
-    "input": A dictionary of input arguments.
-    "reference_out": Expected result computed strictly.
-
-    [Requirements]
-    - Each test must contain input arguments and the reference output.
-    - The input values should encompass Basic, Edge, and Large Scale scenarios as possible.
-    - All reference_out values must be accurately computed according to the algorithm, not guessed.
-        - For non-trivial operations (e.g., matrix multiplication), internally show intermediate computation steps first, and then output the final result.
-        - If unable to guarantee correctness, prefer simpler cases.
-    - The format strictly follows the given JSON structure.
-    - Return ```json your_code_here```, NO additional text
-    """
-
-    async def run(self, algorithm_desc: str, fpath: str, k: int = 3):
-        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc, k=k)
-        rsp = await self._aask(prompt)
-        write_file(parse_json(rsp), fpath)
-        return rsp
-
-
-
-class WriteTestCase(Action):
-    name: str = "WriteTestCase"
-
-    COMMON_PROMPT: str = """
-    You are a C++ programming expert. Based on the given algorithm description and the provided input-output reference data in JSON format, generate C++ test cases using the `assert` function to verify its correctness.
-
-    [Algorithm description]
-    {algorithm_desc}
-
-    [Input-output reference]
-    {reference}
-
-    [Requirements]
-    - Ensure all test cases match the provided input-output reference data.
-    - NO need to make the program runnable, focus on the `assert` statement.
-    - Return ```cpp your_code_here```, NO additional text
-    """
-
-    async def run(self, algorithm_desc: str, reference: str):
-        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc, reference=reference)
-
-        rsp = await self._aask(prompt)
-        code_text = parse_code(rsp)
-        return code_text
-
-
-
-class WriteTestCode(Action):
-    name: str = "WriteTestCode"
-
-    COMMON_PROMPT: str = """
-    You are a C++ programming expert. Given an algorithm implementation and its corresponding test case code, combine them into a complete, standalone C++ program that can be compiled and executed.
-
-    [Algorithm implementation]
-    {code}
-
-    [Test case code]
-    {test}
-
-    [Requirements]
-    - Add necessary headers, main function, and any missing declarations to make the program fully functional.
-    - Preserve the original logic of both the algorithm and the test cases.
-    - Use only assert statements for testing —- do not print any messages, output should remain empty if all tests pass.
-    - Return ```cpp your_code_here```, NO additional text
-    """
-
-    async def run(self, file: str, test: str, fpath: str):
-        code = read_file(file)
-        prompt = self.COMMON_PROMPT.format(code=code, test=test)
-
-        rsp = await self._aask(prompt)
-        code_text = parse_code(rsp)
-        write_file(code_text, fpath)
-        return code_text
 
 
 class CompileCCode(Action):
     name: str = "CompileCCode"
-    async def run(self, src: str, out: str):
-        compile_result = subprocess.run(["g++", src, "-o", out], capture_output=True, text=True)
+    async def run(self, src: List[str], out: str):
+        compile_cmd = ["g++"] + src + ["-o", out]
+        compile_result = subprocess.run(compile_cmd, capture_output=True, text=True)
         error_result = compile_result.stderr
         logger.info(f"error_result:\n{error_result}")
         return error_result
@@ -197,21 +101,4 @@ class FixCCode(Action):
 
         write_file(code_text, fpath)
         return code_text
-
-
-
-class VerifyIORef(Action):
-    name: str = "VerifyIORef"
-
-    COMMON_PROMPT: str = """
-    You are a C++ programming expert, please carefully analyze the following input-output reference data.
-    1. make sure the number of args is correct
-    C++ code: {code}
-    """
-
-    async def run(self, code: str):
-        prompt = self.COMMON_PROMPT.format(code=code)
-        rsp = await self._aask(prompt)
-        return rsp
-
 

@@ -4,38 +4,52 @@ import os
 from metagpt.logs import logger
 from metagpt.team import Team
 
-from hls.roles import HLSEngineer, HLSPerfAnalyzer, HLSToolAssistant
+import config
+
+from const import TARGET_ALGO_DIR
+from hls.roles import (
+    HLSEngineer,
+    HLSPerfAnalyzer,
+    HLSToolAssistant
+)
 from nl2c.roles import (
-    CCodeProgrammer,
-    CTestDesigner,
+    CodeProgrammer,
     CTestExecutor,
 )
 
-from utils import read_file
+from utils import pre_handle_testbench, read_file
 
 async def main(
-    algo_file: str = "../input/buble_sort.txt",
+    algo_path: str,
     investment: float = 3.0,
     n_round: int = 12,
 ):
     # preprocess
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
-    algorithm = read_file(algo_file)
-    logger.info(f"the certain algorithm: {algorithm}")
+    # copy target directory to local
+    algo_name = pre_handle_testbench(algo_path)
+
+    # store algorithm name and other files
+    config.algo_name = algo_name
+    config.src_file = TARGET_ALGO_DIR / f"{algo_name}.cpp"
+    config.head_file = TARGET_ALGO_DIR / f"{algo_name}.h"
+    config.tb_file = TARGET_ALGO_DIR / f"{algo_name}_tb.cpp"
+
+    # get algorithm description
+    algo_desc = TARGET_ALGO_DIR / f"{algo_name}.md"
 
     team = Team()
     team.hire([
-        CCodeProgrammer(),
-        CTestDesigner(),
-        CTestExecutor(),
-        HLSEngineer(),
-        HLSToolAssistant(),
-        HLSPerfAnalyzer(),
+        CodeProgrammer(),
+        # CTestExecutor(),
+        # HLSEngineer(),
+        # HLSToolAssistant(),
+        # HLSPerfAnalyzer(),
     ])
 
     team.invest(investment=investment)
-    team.run_project(algorithm)
+    team.run_project(read_file(algo_desc))
     await team.run(n_round=n_round)
 
 

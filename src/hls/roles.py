@@ -10,7 +10,6 @@ from const import (
     HLS_TCL_FILE,
     IMPLEMENT_FILE_PATH,
     SYNTH_TARGET_PART,
-    TOP_FUNCTION_FILE,
 )
 
 from hls.actions import FixHLSCode, FixHLSOpt, OptimizeHLSPerf, RepairHLSCode, SynthHLSCode, SynthHLSOpt

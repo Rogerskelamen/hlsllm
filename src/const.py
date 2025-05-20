@@ -9,6 +9,10 @@ SYNTH_TARGET_PART = "xc7z010clg400-1"
 
 ROOT_PATH = Path(__file__).resolve().parent.parent
 
+TARGET_ALGO_DIR = ROOT_PATH / "target"
+TARGET_BUILD_TCL_FILE = TARGET_ALGO_DIR / "build.tcl"
+TARGET_EXE_ELF_PATH = TARGET_ALGO_DIR / "main"
+
 IMPLEMENT_DIR = ROOT_PATH / "impl"
 IMPLEMENT_FILE_PATH = IMPLEMENT_DIR / "impl.cpp"
 IMPLEMENT_TEST_FILE_PATH = IMPLEMENT_DIR / "impl_test.cpp"
