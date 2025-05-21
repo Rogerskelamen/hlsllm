@@ -45,6 +45,7 @@ class WriteAlgorithmCode(Action):
         return code_text
 
 
+
 class FixCompileErr(Action):
     name: str = "FixCompileErr"
 
@@ -141,14 +142,15 @@ class RunCCode(Action):
             capture_output=True, text=True
         )
         """
-        Actually, there is two kinds of error in runtime
+        Actually, there are three kinds of error message form in runtime
         1. caused by failing the testbench (given by stdout)
-        2. caused by kernel print error (given by stderr)
-        But it can only get errors from stderr or stdout
+        2. caused by running print error (given by stderr)
+        3. caused by kernel print error (given by dmesg)
+        But for now it can only get errors from stderr or stdout(1&2)
         """
         error_result = runtime_result.stderr + runtime_result.stdout
         status_code = runtime_result.returncode
-        logger.info(f"error_result:\n{error_result}")
+        logger.info(f"runtime result:\n{error_result}")
         logger.info(f"status_code:\n{status_code}")
         return [status_code, error_result]
 

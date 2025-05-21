@@ -2,7 +2,7 @@ import re
 import os
 import subprocess
 
-from const import TARGET_ALGO_DIR
+from const import BUILD_ALGO_DIR
 
 def parse_code(rsp: str):
     pattern = r"```cpp(.*)```"
@@ -47,10 +47,10 @@ def write_file(content: str, path: str) -> None:
 
 def pre_handle_testbench(path: str) -> str:
     # 1. copy testbench
-    subprocess.run(["cp", path, "-r", TARGET_ALGO_DIR])
+    subprocess.run(["cp", path, "-r", BUILD_ALGO_DIR])
     # 2. remove algorithm source file
     algo_name = os.path.basename(path.rstrip('/'))
-    subprocess.run(["rm", TARGET_ALGO_DIR / (algo_name + ".cpp")])
+    subprocess.run(["rm", BUILD_ALGO_DIR / (algo_name + ".cpp")])
     return algo_name
 
 

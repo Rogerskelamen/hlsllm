@@ -9,8 +9,8 @@ from const import (
     IMPLEMENT_FILE_PATH,
     IMPLEMENT_TEST_FILE_PATH,
     IMPLEMENT_TEST_EXE_PATH,
-    TARGET_ALGO_DIR,
-    TARGET_EXE_ELF_PATH,
+    BUILD_ALGO_DIR,
+    BUILD_EXE_ELF_PATH,
 )
 
 from nl2c.actions import (
@@ -117,7 +117,7 @@ class CTestExecutor(Role):
                     config.src_file,
                     config.tb_file
                 ],
-                TARGET_EXE_ELF_PATH
+                BUILD_EXE_ELF_PATH
             )  # compile result
 
             # 程序通过编译
@@ -132,7 +132,7 @@ class CTestExecutor(Role):
 
         # 运行测试代码
         elif isinstance(todo, RunCCode):
-            [retcode, resp] = await todo.run(TARGET_EXE_ELF_PATH, TARGET_ALGO_DIR)  # runtime result
+            [retcode, resp] = await todo.run(BUILD_EXE_ELF_PATH, BUILD_ALGO_DIR)  # runtime result
 
             # 程序运行通过
             if retcode == 0:

@@ -1,12 +1,11 @@
 import fire
 import os
 
-from metagpt.logs import logger
 from metagpt.team import Team
 
 import config
 
-from const import TARGET_ALGO_DIR
+from const import BUILD_ALGO_DIR
 from hls.roles import (
     HLSEngineer,
     HLSPerfAnalyzer,
@@ -32,12 +31,12 @@ async def main(
 
     # store algorithm name and other files
     config.algo_name = algo_name
-    config.src_file = TARGET_ALGO_DIR / f"{algo_name}.cpp"
-    config.head_file = TARGET_ALGO_DIR / f"{algo_name}.h"
-    config.tb_file = TARGET_ALGO_DIR / f"{algo_name}_tb.cpp"
+    config.src_file = BUILD_ALGO_DIR / f"{algo_name}.cpp"
+    config.head_file = BUILD_ALGO_DIR / f"{algo_name}.h"
+    config.tb_file = BUILD_ALGO_DIR / f"{algo_name}_tb.cpp"
 
     # get algorithm description
-    algo_desc = TARGET_ALGO_DIR / f"{algo_name}.md"
+    algo_desc = BUILD_ALGO_DIR / f"{algo_name}.md"
 
     team = Team()
     team.hire([
