@@ -45,30 +45,39 @@ class WriteAlgorithmCode(Action):
         return code_text
 
 
+class FixCompileErr(Action):
+    name: str = "FixCompileErr"
 
-class CompileCCode(Action):
-    name: str = "CompileCCode"
-    async def run(self, src: List[str], out: str):
-        compile_cmd = ["g++"] + src + ["-o", out]
-        compile_result = subprocess.run(compile_cmd, capture_output=True, text=True)
-        error_result = compile_result.stderr
-        logger.info(f"error_result:\n{error_result}")
-        return error_result
+    COMMON_PROMPT: str = """
+    You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware. You are highly skilled at diagnosing compilation errors and correcting source code to make it compile successfully.
+    Please follow the instructions to fix the issue:
 
+    [Instructions]
+    Let's think step by step.
+    Firstly, carefully analyze the compilation message to determine the type and cause of the error.
+    Then, locate the exact line(s) of code responsible for the issue.
+    Finally, modify only what is necessary to resolve the compilation error, while preserving the original functionality and logic of the code.
 
-class RunCCode(Action):
-    name: str = "RunCCode"
-    async def run(self, file: str):
-        runtime_result = subprocess.run([file], capture_output=True, text=True)
-        """
-        Actually, there is two kinds of error in runtime
-        1. cause by assertion failed(given by stderr)
-        2. cause by kernel print error[such as segmentation fault]
-        But it can only get errors from stderr or stdout
-        """
-        error_result = runtime_result.stderr
-        logger.info(f"error_result:\n{error_result}")
-        return error_result
+    [Source Code]
+    {code}
+
+    [Compilation Message]
+    {msg}
+
+    [Requirements]
+    - Provide only the corrected version of the algorithm function.
+    - DO NOT add, remove, or modify functionality—just fix the compilation issue.
+    - DO NOT include a main function, test code, or additional explanation.
+    """
+
+    async def run(self, error: str, src_file: str):
+        code = read_file(src_file)
+        prompt = self.COMMON_PROMPT.format(code=code, msg=error)
+        rsp = await self._aask(prompt)
+        code_text = parse_code(rsp)
+
+        write_file(code_text, src_file)
+        return code_text
 
 
 
@@ -76,29 +85,70 @@ class FixCCode(Action):
     name: str = "FixCCode"
 
     COMMON_PROMPT: str = """
-    You are a C++ programming expert. Analyze the following C++ code and its runtime error message, then modify the algorithm function to fix the error while preserving the original logic.
+    You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware design. You are highly skilled at analyzing execution results and correcting source code to ensure it behaves correctly and passes all tests.
+    Please follow the instructions to fix the issue:
 
-    [Original algorithm function]
-    {algo}
+    [Instructions]
+    Let's think step by step.
+    Firstly, carefully analyze the error message or test output to determine whether the code caused the error or the function can't pass tests.
+    Then, locate the exact line(s) of code responsible for the issue.
+    Finally, modify only what is necessary to resolve the error, while make sure the code could follow the exact algorithm description.
 
-    [C++ source code]
+    [Algorithm Description]
+    {algo_desc}
+
+    [Source Code]
     {code}
 
-    [Error message]
+    [Error Message]
     {error}
 
     [Requirements]
     - Provide only the corrected version of the algorithm function, NO need to be runnable
-    - Return ```cpp your_code_here```, NO additional text
+    - DO NOT add, remove, or modify functionality—just fix the compilation issue.
     """
 
-    async def run(self, test_file: str, error: str, fpath: str):
-        algo = read_file(fpath)
-        code = read_file(test_file)
-        prompt = self.COMMON_PROMPT.format(algo=algo, code=code, error=error)
+    async def run(self, error: str, desc_file: str, src_file: str):
+        algo_desc = read_file(desc_file)
+        code = read_file(src_file)
+        prompt = self.COMMON_PROMPT.format(algo_desc=algo_desc, code=code, error=error)
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
 
-        write_file(code_text, fpath)
+        write_file(code_text, src_file)
         return code_text
+
+
+
+class CompileCCode(Action):
+    name: str = "CompileCCode"
+    async def run(self, src: List[str], out: str):
+        compile_cmd = ["g++"] + src + ["-o", out]
+        compile_result = subprocess.run(compile_cmd, capture_output=True, text=True)
+        error_result = compile_result.stderr
+        status_code = compile_result.returncode
+        logger.info(f"error_result:\n{error_result}")
+        logger.info(f"status_code: {status_code}")
+        return [status_code, error_result]
+
+
+class RunCCode(Action):
+    name: str = "RunCCode"
+    async def run(self, elf_file: str, cwd: str):
+        runtime_result = subprocess.run(
+            [elf_file],
+            cwd=cwd,
+            capture_output=True, text=True
+        )
+        """
+        Actually, there is two kinds of error in runtime
+        1. caused by failing the testbench (given by stdout)
+        2. caused by kernel print error (given by stderr)
+        But it can only get errors from stderr or stdout
+        """
+        error_result = runtime_result.stderr + runtime_result.stdout
+        status_code = runtime_result.returncode
+        logger.info(f"error_result:\n{error_result}")
+        logger.info(f"status_code:\n{status_code}")
+        return [status_code, error_result]
 

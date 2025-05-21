@@ -9,11 +9,13 @@ from const import (
     IMPLEMENT_FILE_PATH,
     IMPLEMENT_TEST_FILE_PATH,
     IMPLEMENT_TEST_EXE_PATH,
+    TARGET_ALGO_DIR,
     TARGET_EXE_ELF_PATH,
 )
 
 from nl2c.actions import (
     FixCCode,
+    FixCompileErr,
     WriteAlgorithmCode,
     CompileCCode,
     RunCCode,
@@ -26,7 +28,7 @@ class CodeProgrammer(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([WriteAlgorithmCode, FixCCode])
+        self.set_actions([WriteAlgorithmCode, FixCompileErr, FixCCode])
         self._watch([UserRequirement])
 
     async def _think(self) -> bool:
@@ -34,6 +36,9 @@ class CodeProgrammer(Role):
 
         if msg.role == "Human":
             self._set_state(self.find_state("WriteAlgorithmCode"))
+
+        elif msg.cause_by == "nl2c.actions.CompileCCode":
+            self._set_state(self.find_state("FixCompileErr"))
 
         elif msg.cause_by == "nl2c.actions.RunCCode":
             self._set_state(self.find_state("FixCCode"))
@@ -53,31 +58,53 @@ class CodeProgrammer(Role):
         if isinstance(todo, WriteAlgorithmCode):
             msg = self.get_memories(k=1)[0]
             resp = await todo.run(msg.content, config.head_file, fpath=config.src_file)
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
-        # 根据源代码和错误信息修正C代码
+        # 根据源码和编译错误信息修正代码
+        elif isinstance(todo, FixCompileErr):
+            msg = self.get_memories(k=1)[0]
+            resp = await todo.run(msg.content, config.src_file)
+
+        # 根据源代码和运行错误信息修正代码
         elif isinstance(todo, FixCCode):
             error = self.get_memories(k=1)[0]
-            resp = await todo.run(test_file=IMPLEMENT_TEST_FILE_PATH, error=error, fpath=IMPLEMENT_FILE_PATH)  # generate 4 reference
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
+            resp = await todo.run(error=error, desc_file=config.desc_file, src_file=config.src_file)
 
+        msg = Message(content=resp, role=self.profile, cause_by=type(todo))
         return msg
 
 
-"""
-To execute generated source + header + testbench code, includes two actions:
-1. compile those files
-2. run the runnable ELF
-"""
+
 class CTestExecutor(Role):
+    """
+    To execute generated source + header + testbench code, includes two actions:
+    1. compile those files
+    2. run the runnable ELF
+    """
+
     name: str = "CTestExecutor"
-    profile: str = "c code case executor"
+    profile: str = "c test code executor"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._watch([WriteAlgorithmCode, FixCCode])
+        self._watch([WriteAlgorithmCode, FixCompileErr, FixCCode])
         self.set_actions([CompileCCode, RunCCode])
-        # self._set_react_mode(react_mode=RoleReactMode.BY_ORDER.value)
+
+
+    async def _think(self) -> bool:
+        msg = self.get_memories(k=1)[0]
+
+        if msg.cause_by in {"nl2c.actions.WriteAlgorithmCode", "nl2c.actions.FixCompileErr"}:
+            self._set_state(self.find_state("CompileCCode"))
+
+        elif msg.cause_by in {"nl2c.actions.CompileCCode", "nl2c.actions.FixCCode"}:
+            self._set_state(self.find_state("RunCCode"))
+
+        else:
+            self._set_state(-1)
+            logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
+            raise ValueError(f"Unexpected message: {msg}")
+        return True
+
 
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
@@ -85,31 +112,37 @@ class CTestExecutor(Role):
 
         # 编译测试代码
         if isinstance(todo, CompileCCode):
-            resp = await todo.run(
+            [retcode, resp] = await todo.run(
                 [
                     config.src_file,
-                    config.head_file,
                     config.tb_file
                 ],
-                IMPLEMENT_TEST_EXE_PATH
+                TARGET_EXE_ELF_PATH
             )  # compile result
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
+
+            # 程序通过编译
+            if retcode == 0:
+                logger.info(f"{self._setting}: code compilation succeed!")
+                msg = Message(content="code compilation succeed!", role=self.profile, cause_by=type(todo), send_to="CTestExecutor")
+
+            # 编译不通过，返回给Programmer
+            else:
+                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CCodeProgrammer")
+
 
         # 运行测试代码
         elif isinstance(todo, RunCCode):
-            resp = await todo.run(IMPLEMENT_TEST_EXE_PATH)  # runtime result
-            compile_error = self.get_memories(k=1)[0].content
-            resp += compile_error
+            [retcode, resp] = await todo.run(TARGET_EXE_ELF_PATH, TARGET_ALGO_DIR)  # runtime result
 
-            # 测试程序编译和运行通过
-            if not resp:
-                logger.info(f"{self._setting}: algorithm code tests all passed!")
-                msg = Message(content="algorithm code tests all passed!", role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
+            # 程序运行通过
+            if retcode == 0:
+                logger.info(f"{self._setting}: algorithm code passed!")
+                msg = Message(content="algorithm code passed!", role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
             # 测试未通过，返回给Programmer
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CCodeProgrammer")
 
-        self.rc.memory.add(msg)
+        # self.rc.memory.add(msg)
         return msg
 

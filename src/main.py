@@ -42,7 +42,7 @@ async def main(
     team = Team()
     team.hire([
         CodeProgrammer(),
-        # CTestExecutor(),
+        CTestExecutor(),
         # HLSEngineer(),
         # HLSToolAssistant(),
         # HLSPerfAnalyzer(),
