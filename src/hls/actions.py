@@ -13,18 +13,30 @@ class SynthHLSCode(Action):
 
     async def run(self):
         cmd = ["vitis_hls", "-f", BUILD_SYNTH_TCL_FILE]
-        try:
-            subprocess.run(
-                cmd,
-                cwd=BUILD_ALGO_DIR,
-                capture_output=True, text=True, check=True
-            )
+        process = subprocess.Popen(
+            cmd,
+            cwd=BUILD_ALGO_DIR,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+
+        output_lines = []
+
+        # 实时读取输出并打印，同时保存
+        for line in iter(process.stdout.readline, ''):
+            print(line, end='')
+            output_lines.append(line)
+
+        process.stdout.close()
+        return_code = process.wait()
+        if return_code == 0:
             print("✅ Synthesis Completed Successfully!")
             return None
-        except subprocess.CalledProcessError as e:
+        else:
             print("❌ Synthesis Failed.")
-            # 综合失败，处理输出结果
-            return e.stdout
+            last_lines = output_lines[-20:]
+            return ''.join(last_lines)
 
 
 class CosimHLSCode(Action):
@@ -32,18 +44,31 @@ class CosimHLSCode(Action):
 
     async def run(self):
         cmd = ["vitis_hls", "-f", BUILD_HLS_TCL_FILE]
-        try:
-            subprocess.run(
-                cmd,
-                cwd=BUILD_ALGO_DIR,
-                capture_output=True, text=True, check=True
-            )
-            print("✅ Synthesis Completed Successfully!")
+        process = subprocess.Popen(
+            cmd,
+            cwd=BUILD_ALGO_DIR,
+            text=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+
+        output_lines = []
+
+        # 实时读取输出并打印，同时保存
+        for line in iter(process.stdout.readline, ''):
+            print(line, end='')
+            output_lines.append(line)
+
+        process.stdout.close()
+        return_code = process.wait()
+        if return_code == 0:
+            print("✅ C/RTL Cosimulation Completed Successfully!")
             return None
-        except subprocess.CalledProcessError as e:
-            print("❌ Synthesis Failed.")
-            # 综合失败，处理输出结果
-            return e.stdout
+        else:
+            print("❌ C/RTL Cosimulation Failed to pass.")
+            last_lines = output_lines[-20:]
+            return ''.join(last_lines)
+
 
 
 class RepairHLSCode(Action):
@@ -87,7 +112,7 @@ class FixHLSCode(Action):
 
     COMMON_PROMPT: str = """
     You are an hardware expert specializing in Xilinx Vitis HLS, with deep knowledge of C/C++ for High-Level Synthesis. You are highly skilled at analyzing C/RTL cosimulation reports and modifying HLS code to ensure it passes the testbench, while strictly conforming to HLS synthesis standards.
-    Please analyze the following code and execution report, and revise the code accordingly.
+    Given the following C/C++ algorithm code and error of execute report, Please analyze the following code and execution report, and revise the code accordingly.
 
     [Instructions]
     Let's think step by step.

@@ -1,6 +1,6 @@
 from metagpt.rag.engines import SimpleEngine
 from metagpt.rag.engines.simple import SentenceSplitter
-from metagpt.rag.schema import CohereRerankConfig, ColbertRerankConfig, FAISSIndexConfig, FAISSRetrieverConfig, BM25RetrieverConfig
+from metagpt.rag.schema import BGERerankConfig, CohereRerankConfig, ColbertRerankConfig, FAISSIndexConfig, FAISSRetrieverConfig, BM25RetrieverConfig
 from metagpt.logs import logger
 
 from llama_index.core.schema import QueryType
@@ -35,8 +35,8 @@ class RAGCodeStyle:
             logger.info(f"Loading Existed persistent index from {self.persist_dir}!")
             self.engine = SimpleEngine.from_index(
                 index_config=FAISSIndexConfig(persist_path=self.persist_dir),
-                ranker_configs=[ColbertRerankConfig()],
-                retriever_configs=self.retriever_configs
+                ranker_configs=[BGERerankConfig()],
+                retriever_configs=self.retriever_configs,
             )
         else:
             logger.info("Loading index from documents!")
@@ -93,8 +93,8 @@ class RAGOptTech:
             logger.info(f"Loading Existed persistent index from {self.persist_dir}!")
             self.engine = SimpleEngine.from_index(
                 index_config=FAISSIndexConfig(persist_path=self.persist_dir),
-                ranker_configs=[ColbertRerankConfig()],
-                retriever_configs=self.retriever_configs
+                ranker_configs=[BGERerankConfig()],
+                retriever_configs=self.retriever_configs,
             )
         else:
             logger.info("Loading index from documents!")

@@ -131,7 +131,10 @@ class CompileCCode(Action):
         error_result = compile_result.stderr
         status_code = compile_result.returncode
         logger.info(f"error_result:\n{error_result}")
-        logger.info(f"status_code: {status_code}")
+        if status_code == 0:
+            print("✅ Compilation Completed Successfully!")
+        else:
+            print("❌ Compilation Failed.")
         return [status_code, error_result]
 
 
@@ -153,6 +156,9 @@ class RunCCode(Action):
         error_result = runtime_result.stderr + runtime_result.stdout
         status_code = runtime_result.returncode
         logger.info(f"runtime result:\n{error_result}")
-        logger.info(f"status_code:\n{status_code}")
+        if status_code == 0:
+            print("✅ Running Code Successfully!")
+        else:
+            print("❌ Running Failed.")
         return [status_code, error_result]
 
