@@ -1,3 +1,4 @@
+import subprocess
 from metagpt.roles import Role
 from metagpt.logs import logger
 from metagpt.schema import Message
@@ -83,7 +84,7 @@ class HLSBuildAssistant(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([SynthHLSCode, CosimHLSCode])
+        self.set_actions([SynthHLSCode, CosimHLSCode, SynthHLSOpt])
         self._watch([RepairHLSCode, FixHLSCode, OptimizeHLSPerf, FixHLSOpt])
 
     async def _think(self) -> bool:
@@ -94,6 +95,9 @@ class HLSBuildAssistant(Role):
 
         elif msg.cause_by == "hls.actions.SynthHLSCode":
             self._set_state(self.find_state("CosimHLSCode"))
+
+        elif msg.cause_by in ("hls.actions.OptimizeHLSPerf", "hls.actions.FixHLSOpt"):
+            self._set_state(self.find_state("SynthHLSOpt"))
 
         else:
             self._set_state(-1)
@@ -134,6 +138,10 @@ class HLSBuildAssistant(Role):
                     content="HLS C/RTL Cosimulation passed!",
                     role=self.profile,
                     cause_by=type(todo),
+                )
+                result = subprocess.run(
+                    ["cp", config.src_file, "out"],
+                    capture_output=True, text=True
                 )
 
             # 协同仿真失败
