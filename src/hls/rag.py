@@ -32,8 +32,7 @@ class RAGCodeStyle:
         logger.info("execute RAGCodeStyle.__init__")
 
         if self.persist_dir.exists():
-            logger.info("Loading Existed index!")
-            logger.info(f"Index Path:{self.persist_dir}")
+            logger.info(f"Loading Existed persistent index from {self.persist_dir}!")
             self.engine = SimpleEngine.from_index(
                 index_config=FAISSIndexConfig(persist_path=self.persist_dir),
                 ranker_configs=[ColbertRerankConfig()],
@@ -91,8 +90,7 @@ class RAGOptTech:
         logger.info("execute RAGPerfOpt.__init__")
 
         if self.persist_dir.exists():
-            logger.info("Loading Existed index!")
-            logger.info(f"Index Path:{self.persist_dir}")
+            logger.info(f"Loading Existed persistent index from {self.persist_dir}!")
             self.engine = SimpleEngine.from_index(
                 index_config=FAISSIndexConfig(persist_path=self.persist_dir),
                 ranker_configs=[ColbertRerankConfig()],

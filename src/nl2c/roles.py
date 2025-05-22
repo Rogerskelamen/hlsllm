@@ -137,7 +137,7 @@ class CTestExecutor(Role):
             # 程序运行通过
             if retcode == 0:
                 logger.info(f"{self._setting}: algorithm code passed!")
-                msg = Message(content="algorithm code passed!", role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
+                msg = Message(content="algorithm code passed!", role=self.profile, cause_by=type(todo), send_to="HLSBuildAssistant")
 
             # 测试未通过，返回给Programmer
             else:

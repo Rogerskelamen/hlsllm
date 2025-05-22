@@ -9,7 +9,7 @@ from const import BUILD_ALGO_DIR
 from hls.roles import (
     HLSEngineer,
     HLSPerfAnalyzer,
-    HLSToolAssistant
+    HLSBuildAssistant
 )
 from nl2c.roles import (
     CodeProgrammer,
@@ -42,8 +42,8 @@ async def main(
     team.hire([
         CodeProgrammer(),
         CTestExecutor(),
-        # HLSEngineer(),
-        # HLSToolAssistant(),
+        HLSEngineer(),
+        HLSBuildAssistant(),
         # HLSPerfAnalyzer(),
     ])
 

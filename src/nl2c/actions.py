@@ -69,6 +69,7 @@ class FixCompileErr(Action):
     - Provide only the corrected version of the algorithm function.
     - DO NOT add, remove, or modify functionality—just fix the compilation issue.
     - DO NOT include a main function, test code, or additional explanation.
+    - Return corrected version, formatted as ```cpp your_fix_code_here```
     """
 
     async def run(self, error: str, src_file: str):
@@ -107,6 +108,7 @@ class FixCCode(Action):
     [Requirements]
     - Provide only the corrected version of the algorithm function, NO need to be runnable
     - DO NOT add, remove, or modify functionality—just fix the compilation issue.
+    - Return corrected version, formatted as ```cpp your_fix_code_here```
     """
 
     async def run(self, error: str, desc_file: str, src_file: str):

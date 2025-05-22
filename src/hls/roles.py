@@ -2,19 +2,33 @@ from metagpt.roles import Role
 from metagpt.logs import logger
 from metagpt.schema import Message
 
+import config
+
 from const import (
     HLS_OPT_CODE_FILE,
     HLS_OPT_PROJECT_NAME,
-    HLS_PROJECT_NAME,
     HLS_SRC_CODE_FILE,
     HLS_TCL_FILE,
-    IMPLEMENT_FILE_PATH,
     SYNTH_TARGET_PART,
 )
 
-from hls.actions import FixHLSCode, FixHLSOpt, OptimizeHLSPerf, RepairHLSCode, SynthHLSCode, SynthHLSOpt
+from hls.actions import (
+    CosimHLSCode,
+    FixHLSCode,
+    FixHLSOpt,
+    OptimizeHLSPerf,
+    RepairHLSCode,
+    SynthHLSCode,
+    SynthHLSOpt
+)
+from utils import synth_tcl_gen
 
 
+"""
+This agent is a HLS expert,
+focused on repairing HLS code to ensure synthesizability and
+applying optimization techniques to improve hardware performance
+"""
 class HLSEngineer(Role):
     name: str = "HLSEngineer"
     profile: str = "Vitis HLS engineer"
@@ -27,10 +41,10 @@ class HLSEngineer(Role):
     async def _think(self) -> bool:
         msg = self.get_memories(k=1)[0]
 
-        if msg.cause_by == "nl2c.actions.RunCCode":
+        if msg.cause_by == "hls.actions.SynthHLSCode":
             self._set_state(self.find_state("RepairHLSCode"))
 
-        elif msg.cause_by == "hls.actions.SynthHLSCode":
+        elif msg.cause_by == "hls.actions.CosimHLSCode":
             self._set_state(self.find_state("FixHLSCode"))
 
         else:
@@ -45,34 +59,41 @@ class HLSEngineer(Role):
         todo = self.rc.todo
 
         if isinstance(todo, RepairHLSCode):
-            resp = await todo.run(IMPLEMENT_FILE_PATH, HLS_SRC_CODE_FILE)
+            msg = self.get_memories(k=1)[0]
+            resp = await todo.run(config.src_file, msg.content)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         elif isinstance(todo, FixHLSCode):
             msg = self.get_memories(k=1)[0]
-            resp = await todo.run(HLS_SRC_CODE_FILE, msg)
+            resp = await todo.run(config.src_file, msg.content)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg
 
 
-class HLSToolAssistant(Role):
-    name: str = "HLSToolAssistant"
-    profile: str = "Vitis HLS tool assistant"
+
+"""
+This agent assists in building HLS project by TCL scripts,
+focusing on managing automatical steps and
+ensuring the entire process runs as smoothly as possible.
+"""
+class HLSBuildAssistant(Role):
+    name: str = "HLSBuildAssistant"
+    profile: str = "Vitis HLS building assistant"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([SynthHLSCode, SynthHLSOpt])
+        self.set_actions([SynthHLSCode, CosimHLSCode])
         self._watch([RepairHLSCode, FixHLSCode, OptimizeHLSPerf, FixHLSOpt])
 
     async def _think(self) -> bool:
         msg = self.get_memories(k=1)[0]
 
-        if msg.cause_by in ("hls.actions.RepairHLSCode", "hls.actions.FixHLSCode"):
+        if msg.cause_by in ("nl2c.actions.RunCCode", "hls.actions.RepairHLSCode"):
             self._set_state(self.find_state("SynthHLSCode"))
 
-        elif msg.cause_by in ("hls.actions.OptimizeHLSPerf", "hls.actions.FixHLSOpt"):
-            self._set_state(self.find_state("SynthHLSOpt"))
+        elif msg.cause_by == "hls.actions.SynthHLSCode":
+            self._set_state(self.find_state("CosimHLSCode"))
 
         else:
             self._set_state(-1)
@@ -86,20 +107,36 @@ class HLSToolAssistant(Role):
         todo = self.rc.todo
 
         if isinstance(todo, SynthHLSCode):
-            resp = await todo.run(
-                proj_name=HLS_PROJECT_NAME,
-                top_func=TOP_FUNCTION_FILE,
-                src_file=HLS_SRC_CODE_FILE,
-                part=SYNTH_TARGET_PART,
-                tcl_file=HLS_TCL_FILE
-            )
+            synth_tcl_gen()
+            resp = await todo.run()
 
             # HLS代码综合成功
             if not resp:
-                logger.info(f"{self._setting}: hls source file successfully synthesised!")
-                msg = Message(content="hls source file successfully synthesised!", role=self.profile, cause_by=type(todo), send_to="HLSPerfAnalyzer")
+                logger.info(f"{self._setting}: HLS C Synthesis succeed!")
+                msg = Message(
+                    content="HLS C Synthesis succeed!",
+                    role=self.profile,
+                    cause_by=type(todo),
+                    send_to="HLSBuildAssistant"
+                )
 
             # 综合失败
+            else:
+                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
+
+        elif isinstance(todo, CosimHLSCode):
+            resp = await todo.run()
+
+            # HLS协同仿真成功
+            if not resp:
+                logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
+                msg = Message(
+                    content="HLS C/RTL Cosimulation passed!",
+                    role=self.profile,
+                    cause_by=type(todo),
+                )
+
+            # 协同仿真失败
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 

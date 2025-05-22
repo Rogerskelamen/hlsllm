@@ -2,7 +2,7 @@ import re
 import os
 import subprocess
 
-from const import BUILD_ALGO_DIR
+from const import BUILD_ALGO_DIR, BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE
 
 def parse_code(rsp: str):
     pattern = r"```cpp(.*)```"
@@ -52,6 +52,18 @@ def pre_handle_testbench(path: str) -> str:
     algo_name = os.path.basename(path.rstrip('/'))
     subprocess.run(["rm", BUILD_ALGO_DIR / (algo_name + ".cpp")])
     return algo_name
+
+
+def synth_tcl_gen():
+    # check if synth.tcl exists
+    if not os.path.exists(BUILD_SYNTH_TCL_FILE):
+        # copy build.tcl to get a new tcl
+        copy_tcl_cmd = ["cp", BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE]
+        subprocess.run(copy_tcl_cmd, capture_output=True, text=True)
+
+        # delete line 10 (cosim)
+        rm_cosim_cmd = ["sed", "-i", "10d", BUILD_SYNTH_TCL_FILE]
+        subprocess.run(rm_cosim_cmd, capture_output=True, text=True)
 
 
 def extract_func_name(input: str) -> str:
