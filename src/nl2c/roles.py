@@ -1,14 +1,10 @@
 from metagpt.roles import Role
 from metagpt.actions import UserRequirement
 from metagpt.logs import logger
-from metagpt.roles.role import RoleReactMode
 from metagpt.schema import Message
 
 import config
 from const import (
-    IMPLEMENT_FILE_PATH,
-    IMPLEMENT_TEST_FILE_PATH,
-    IMPLEMENT_TEST_EXE_PATH,
     BUILD_ALGO_DIR,
     BUILD_EXE_ELF_PATH,
 )
@@ -127,7 +123,7 @@ class CTestExecutor(Role):
 
             # 编译不通过，返回给Programmer
             else:
-                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CCodeProgrammer")
+                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CodeProgrammer")
 
 
         # 运行测试代码
@@ -141,7 +137,7 @@ class CTestExecutor(Role):
 
             # 测试未通过，返回给Programmer
             else:
-                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CCodeProgrammer")
+                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="CodeProgrammer")
 
         # self.rc.memory.add(msg)
         return msg
