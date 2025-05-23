@@ -17,13 +17,18 @@ class WriteAlgorithmCode(Action):
 
     COMMON_PROMPT: str = """
     You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware. You excel at translating algorithm descriptions written in natural language into synthesizable C++ code suitable for HLS tools.
-    Please generate a complete and self-contained C++ function implementation based on the following information:
+
+    [Tasks]
+    Given a natural language description of an HLS design, a pre-written C++ design header, and a pre-written C++ testbench, generate the C++ implementation of the HLS design that aligns with the natural language description.
 
     [Algorithm description]
     {algorithm_desc}
 
     [Header file]
     {header_file}
+
+    [Testbench file]
+    {tb_file}
 
     [Requirements]
     - Include the specified header file using `#include "{header_name}`.
@@ -35,9 +40,14 @@ class WriteAlgorithmCode(Action):
     - Return ```cpp your_code_here```, NO additional text.
     """
 
-    async def run(self, algorithm_desc: str, header_file: str, fpath: str):
+    async def run(self, algorithm_desc: str, header_file: str, tb_file: str, fpath: str):
         header_name = os.path.basename(header_file)
-        prompt = self.COMMON_PROMPT.format(algorithm_desc=algorithm_desc, header_file=read_file(header_file), header_name=header_name)
+        prompt = self.COMMON_PROMPT.format(
+            algorithm_desc=algorithm_desc,
+            header_file=read_file(header_file),
+            tb_file=read_file(tb_file),
+            header_name=header_name
+        )
 
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)

@@ -53,7 +53,12 @@ class CodeProgrammer(Role):
         # 获取自然语言表示，生成C代码
         if isinstance(todo, WriteAlgorithmCode):
             msg = self.get_memories(k=1)[0]
-            resp = await todo.run(msg.content, config.head_file, fpath=config.src_file)
+            resp = await todo.run(
+                msg.content,
+                config.head_file,
+                config.tb_file,
+                fpath=config.src_file
+            )
 
         # 根据源码和编译错误信息修正代码
         elif isinstance(todo, FixCompileErr):
@@ -63,7 +68,11 @@ class CodeProgrammer(Role):
         # 根据源代码和运行错误信息修正代码
         elif isinstance(todo, FixCCode):
             error = self.get_memories(k=1)[0]
-            resp = await todo.run(error=error, desc_file=config.desc_file, src_file=config.src_file)
+            resp = await todo.run(
+                error=error,
+                desc_file=config.desc_file,
+                src_file=config.src_file
+            )
 
         msg = Message(content=resp, role=self.profile, cause_by=type(todo))
         return msg

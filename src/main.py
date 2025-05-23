@@ -34,6 +34,7 @@ async def main(
     config.src_file  = BUILD_ALGO_DIR / f"{algo_name}.cpp"
     config.head_file = BUILD_ALGO_DIR / f"{algo_name}.h"
     config.tb_file   = BUILD_ALGO_DIR / f"{algo_name}_tb.cpp"
+    config.desc_file = BUILD_ALGO_DIR / f"{algo_name}.md"
 
     # get algorithm description
     algo_desc = BUILD_ALGO_DIR / f"{algo_name}.md"
