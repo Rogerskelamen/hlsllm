@@ -16,7 +16,7 @@ class WriteAlgorithmCode(Action):
     name: str = "WriteAlgorithmCode"
 
     COMMON_PROMPT: str = """
-    You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware. You excel at translating algorithm descriptions written in natural language into synthesizable C++ code suitable for HLS tools.
+    You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware design. You excel at translating algorithm descriptions written in natural language into synthesizable C++ implementation suitable for HLS tools.
 
     [Tasks]
     Given a natural language description of an HLS design, a pre-written C++ design header, and a pre-written C++ testbench, generate the C++ implementation of the HLS design that aligns with the natural language description.
@@ -27,16 +27,13 @@ class WriteAlgorithmCode(Action):
     [Header file]
     {header_file}
 
-    [Testbench file]
-    {tb_file}
-
     [Requirements]
-    - Include the specified header file using `#include "{header_name}`.
-    - Implement only the function described in the algorithm, without any main function, test code, or additional unrelated content.
-    - ONLY include standard library headers if they are required by the implementation.
-    - DO NOT add any HLS directives at this stage.
-    - Add clear comments explaining key parts of the implementation.
-    - Ensure the code follows C++ programming best practices, making it reusable and readable.
+    - Include the specified header file using `#include "{header_name}"`.
+    - Implement ONLY the function described in the algorithm, without any main function, test code, or additional unrelated content.
+    - Include standard library headers ONLY if required by the implementation.
+    - DO NOT add any HLS pragmas or directives, DO NOT include HLS-specific headers provided by Vitis HLS.
+    - Add clear and concise comments to explain key parts of the implementation.
+    - Follows modern C++ best practices to ensure reusable and readable.
     - Return ```cpp your_code_here```, NO additional text.
     """
 
@@ -45,7 +42,7 @@ class WriteAlgorithmCode(Action):
         prompt = self.COMMON_PROMPT.format(
             algorithm_desc=algorithm_desc,
             header_file=read_file(header_file),
-            tb_file=read_file(tb_file),
+            # tb_file=read_file(tb_file),
             header_name=header_name
         )
 

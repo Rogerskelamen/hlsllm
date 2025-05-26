@@ -31,10 +31,10 @@ class SynthHLSCode(Action):
         process.stdout.close()
         return_code = process.wait()
         if return_code == 0:
-            print("✅ Synthesis Completed Successfully!")
+            print("\n✅ Synthesis Completed Successfully!")
             return None
         else:
-            print("❌ Synthesis Failed.")
+            print("\n❌ Synthesis Failed.")
             last_lines = output_lines[-20:]
             return ''.join(last_lines)
 
@@ -62,10 +62,10 @@ class CosimHLSCode(Action):
         process.stdout.close()
         return_code = process.wait()
         if return_code == 0:
-            print("✅ C/RTL Cosimulation Completed Successfully!")
+            print("\n✅ C/RTL Cosimulation Completed Successfully!")
             return None
         else:
-            print("❌ C/RTL Cosimulation Failed to pass.")
+            print("\n❌ C/RTL Cosimulation Failed to pass.")
             last_lines = output_lines[-20:]
             return ''.join(last_lines)
 
