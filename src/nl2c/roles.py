@@ -49,27 +49,27 @@ class CodeProgrammer(Role):
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
         todo = self.rc.todo
+        msg = self.get_memories(k=1)[0]
 
         # 获取自然语言表示，生成C代码
         if isinstance(todo, WriteAlgorithmCode):
-            msg = self.get_memories(k=1)[0]
             resp = await todo.run(
                 msg.content,
                 config.head_file,
-                config.tb_file,
                 fpath=config.src_file
             )
 
         # 根据源码和编译错误信息修正代码
         elif isinstance(todo, FixCompileErr):
-            msg = self.get_memories(k=1)[0]
             resp = await todo.run(msg.content, config.src_file)
 
         # 根据源代码和运行错误信息修正代码
         elif isinstance(todo, FixCCode):
-            error = self.get_memories(k=1)[0]
+            # 只取报错信息的前30行信息
+            first_30_lines = '\n'.join(msg.content.splitlines()[:31])
+            print(first_30_lines)
             resp = await todo.run(
-                error=error,
+                error=first_30_lines,
                 desc_file=config.desc_file,
                 src_file=config.src_file
             )

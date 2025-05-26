@@ -37,12 +37,11 @@ class WriteAlgorithmCode(Action):
     - Return ```cpp your_code_here```, NO additional text.
     """
 
-    async def run(self, algorithm_desc: str, header_file: str, tb_file: str, fpath: str):
+    async def run(self, algorithm_desc: str, header_file: str, fpath: str):
         header_name = os.path.basename(header_file)
         prompt = self.COMMON_PROMPT.format(
             algorithm_desc=algorithm_desc,
             header_file=read_file(header_file),
-            # tb_file=read_file(tb_file),
             header_name=header_name
         )
 
