@@ -70,8 +70,8 @@ class CodeProgrammer(Role):
             print(first_30_lines)
             resp = await todo.run(
                 error=first_30_lines,
-                desc_file=config.desc_file,
-                src_file=config.src_file
+                src_file=config.src_file,
+                tb_file=config.tb_file
             )
 
         msg = Message(content=resp, role=self.profile, cause_by=type(todo))
