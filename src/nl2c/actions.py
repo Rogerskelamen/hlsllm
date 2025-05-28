@@ -23,13 +23,14 @@ class WriteAlgorithmCode(Action):
 
     [Instructions]
     Let's think step by step:
-    - Understand the Algorithm. Read the provided natural language description carefully. Identify the key computational steps, data flow, loop structures, and any decision-making logic involved.
-    - Find top function
-    Recognize top function and its sub-components in the algorithm description, split out logic of top function.
-    - Implement the Logic
-    Translate the algorithm into clean, synthesizable C++ code.
-    - Implement the sub-components
-    Translate the description of sub-components into sub-functions.
+    1. Understand the Algorithm
+    Read the provided natural language description carefully. Identify the key computational steps, data flow, loop structures, and any decision-making logic involved.
+    2. Identify Top-Level Function
+    Determine the top-level function and its sub-components in the description, split out logic of top function.
+    3. Implement the Main Logic
+    Implement the core functionality in the top-level function using clean, synthesizable C++ code.
+    4. Implement the sub-components
+    Implement each identified sub-function separately. Ensure each sub-function is well-structured, reusable.
 
     [Algorithm description]
     {algorithm_desc}
@@ -38,10 +39,10 @@ class WriteAlgorithmCode(Action):
     {header_file}
 
     [Requirements]
-    - Include the specified header file using `#include "{header_name}"`.
+    - **DO remember to include the specified header file using `#include "{header_name}"`**.
     - Implement the top function described in the algorithm description, along with any sub-component functions that are directly called by it.
     - DO NOT write a main function, any test code, or additional unrelated content.
-    - Do not include any standard library headers unless they are strictly required by the code implementation. If the function does not use any standard library features, no headers should be included.
+    - DO NOT include any standard library headers(e.g. <cmath>) unless they are strictly required by the code implementation. If the function does not use any standard library features, no headers should be included.
     - DO NOT add any HLS pragmas or directives, DO NOT include HLS-specific headers provided by Vitis HLS.
     - Add clear and concise comments to explain key parts of the implementation.
     - Follows modern C++ best practices to ensure reusable and readable.
@@ -107,7 +108,7 @@ class FixCCode(Action):
     You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware design. You are highly skilled at analyzing execution results and correcting source code to ensure it behaves correctly and passes all tests.
 
     [Tasks]
-    Given the source code, error message or test output, and the testbench, identify and fix any issues in the source code so that it passes all tests and behaves as intended.
+    Given the source code, header file, error message or test output, and the testbench, identify and fix any issues in the source code so that it passes all tests and behaves as intended.
 
     [Instructions]
     Let's think step by step.
@@ -118,22 +119,26 @@ class FixCCode(Action):
     [Source Code]
     {code}
 
-    [Error Message/Test Output]
-    {error}
+    [Header file]
+    {header}
 
     [TestBench Code]
     {testbench}
 
+    [Error Message/Test Output]
+    {error}
+
     [Requirements]
-    - Provide only the corrected version of the algorithm function, NO need to be runnable
+    - Provide the corrected version of the algorithm function and its sub-components
     - Fix only what is required to pass all tests based on the testbench.
     - Return ```cpp your_fix_code_here```, NO additional text
     """
 
-    async def run(self, error: str, src_file: str, tb_file: str):
+    async def run(self, error: str, src_file: str, head_file: str, tb_file: str):
         code = read_file(src_file)
         testbench = read_file(tb_file)
-        prompt = self.COMMON_PROMPT.format(code=code, error=error, testbench=testbench)
+        header = read_file(head_file)
+        prompt = self.COMMON_PROMPT.format(code=code, header=header, error=error, testbench=testbench)
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
 

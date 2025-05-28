@@ -71,6 +71,7 @@ class CodeProgrammer(Role):
             resp = await todo.run(
                 error=first_30_lines,
                 src_file=config.src_file,
+                head_file=config.head_file,
                 tb_file=config.tb_file
             )
 
