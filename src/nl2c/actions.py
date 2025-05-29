@@ -32,10 +32,10 @@ class WriteAlgorithmCode(Action):
     4. Implement the sub-components
     Implement each identified sub-function separately. Ensure each sub-function is well-structured, reusable.
 
-    [Algorithm description]
+    [Algorithm Description]
     {algorithm_desc}
 
-    [Header file]
+    [Header File]
     {header_file}
 
     [Requirements]
@@ -108,7 +108,7 @@ class FixCCode(Action):
     You are an expert in C++ and High-Level Synthesis(HLS), with a strong background in hardware design. You are highly skilled at analyzing execution results and correcting source code to ensure it behaves correctly and passes all tests.
 
     [Tasks]
-    Given the source code, header file, error message or test output, and the testbench, identify and fix any issues in the source code so that it passes all tests and behaves as intended.
+    Given the source code, header file, error message or test output, and the algorithm description, identify and fix any issues in the source code so that it passes all tests and behaves as intended.
 
     [Instructions]
     Let's think step by step.
@@ -119,11 +119,11 @@ class FixCCode(Action):
     [Source Code]
     {code}
 
-    [Header file]
+    [Header File]
     {header}
 
-    [TestBench Code]
-    {testbench}
+    [Algorithm Description]
+    {algo_desc}
 
     [Error Message/Test Output]
     {error}
@@ -134,11 +134,11 @@ class FixCCode(Action):
     - Return ```cpp your_fix_code_here```, NO additional text
     """
 
-    async def run(self, error: str, src_file: str, head_file: str, tb_file: str):
+    async def run(self, error: str, src_file: str, head_file: str, desc_file: str):
         code = read_file(src_file)
-        testbench = read_file(tb_file)
+        algo_desc = read_file(desc_file)
         header = read_file(head_file)
-        prompt = self.COMMON_PROMPT.format(code=code, header=header, error=error, testbench=testbench)
+        prompt = self.COMMON_PROMPT.format(code=code, header=header, error=error, algo_desc=algo_desc)
         rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
 

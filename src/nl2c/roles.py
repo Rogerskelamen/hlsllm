@@ -72,7 +72,7 @@ class CodeProgrammer(Role):
                 error=first_30_lines,
                 src_file=config.src_file,
                 head_file=config.head_file,
-                tb_file=config.tb_file
+                desc_file=config.desc_file
             )
 
         msg = Message(content=resp, role=self.profile, cause_by=type(todo))
