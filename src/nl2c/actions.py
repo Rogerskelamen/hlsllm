@@ -40,6 +40,7 @@ class WriteAlgorithmCode(Action):
 
     [Requirements]
     - **DO remember to include the specified header file using `#include "{header_name}"`**.
+    - DO NOT add any macros that is already defined in header file.
     - Implement the top function described in the algorithm description, along with any sub-component functions that are directly called by it.
     - DO NOT write a main function, any test code, or additional unrelated content.
     - DO NOT include any standard library headers(e.g. <cmath>) unless they are strictly required by the code implementation. If the function does not use any standard library features, no headers should be included.
