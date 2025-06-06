@@ -20,7 +20,7 @@ run: $(ALL)
 
 clean:
 	-rm -rf $(BUILD)
-	-rm -rf hlsProj hlsOptProj vitis_hls.log
+	-rm -rf vitis_hls.log
 	-rm -rf hls/*
 
 .PHONY: default run clean

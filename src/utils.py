@@ -1,5 +1,6 @@
 import re
 import os
+import ast
 import subprocess
 
 from const import BUILD_ALGO_DIR, BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE
@@ -75,3 +76,18 @@ def extract_func_name(input: str) -> str:
         return func_name
     else:
         raise ValueError("Can't find function name")
+
+
+def parse_opt_list(input: str) -> list[str]:
+    match = re.search(r"\[(.*?)\]", input)
+    if match:
+        raw_list_str = match.group()
+        try:
+            # 加引号包裹每个元素
+            items = re.findall(r'[^\[\],]+', raw_list_str)
+            items = [item.strip() for item in items if item.strip()]
+            return items
+        except Exception as e:
+            print("Error parsing list:", e)
+    return None
+

@@ -19,6 +19,11 @@ from nl2c.actions import (
 
 
 class CodeProgrammer(Role):
+    """
+    To generate code and fix it if error occurs, includes two kinds of actions:
+    1. Generate algorithm code
+    2. Fix compilation + runtime error
+    """
     name: str = "CodeProgrammer"
     profile: str = "c code programmer"
 

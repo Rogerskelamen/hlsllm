@@ -2,11 +2,13 @@ import subprocess
 import textwrap
 
 from metagpt.actions import Action
-
-from const import BUILD_ALGO_DIR, BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE
 from hls.rag import RAGCodeStyle, RAGOptTech
-from utils import parse_code, read_file, write_file
 
+from utils import parse_code, parse_opt_list, read_file, write_file
+
+from const import BUILD_ALGO_DIR, BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE, OPT_OPTIONS
+
+from hls.prompt import *
 
 class SynthHLSCode(Action):
     name: str = "SynthHLSCode"
@@ -75,7 +77,7 @@ class RepairHLSCode(Action):
     name: str = "RepairHLSCode"
 
     COMMON_PROMPT: str = """
-    You are an hardware expert specializing in Xilinx Vitis HLS, with deep knowledge of C/C++ for High-Level Synthesis. You are highly skilled at analyzing HLS synthesis reports and modifying C/C++ code to make it fully synthesizable.
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge of C/C++ for High-Level Synthesis. You are highly skilled at analyzing HLS synthesis reports and modifying C/C++ code to make it fully synthesizable.
     Given the following C/C++ algorithm code and sythesis report, modify the code as needed to ensure it is fully synthesizable using Vitis HLS, in strict compliance with HLS synthesis standards.
 
     [Instructions]
@@ -111,7 +113,7 @@ class FixHLSCode(Action):
     name: str = "FixHLSCode"
 
     COMMON_PROMPT: str = """
-    You are an hardware expert specializing in Xilinx Vitis HLS, with deep knowledge of C/C++ for High-Level Synthesis. You are highly skilled at analyzing C/RTL cosimulation reports and modifying HLS code to ensure it passes the testbench, while strictly conforming to HLS synthesis standards.
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge of C/C++ for High-Level Synthesis. You are highly skilled at analyzing C/RTL cosimulation reports and modifying HLS code to ensure it passes the testbench, while strictly conforming to HLS synthesis standards.
     Given the following C/C++ algorithm code and error of execute report, Please analyze the following code and execution report, and revise the code accordingly.
 
     [Instructions]
@@ -143,40 +145,41 @@ class FixHLSCode(Action):
 
 
 
+class ChooseOpt(Action):
+    name: str = "ChooseOpt"
 
-class SynthHLSOpt(Action):
-    name: str = "SynthHLSOpt"
+    COMMON_PROMPT: str = """
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about code optimization.
 
-    SET_PROJ_TCL: str = textwrap.dedent("""
-    open_project {proj_name}
-    set_top {top_func}
-    add_files {src_file}
-    open_solution solution1
-    set_part {part}
-    create_clock -period 10 -name default
-    csynth_design
-    exit
-    """)
+    In HLS, performance can be improved using various compiler directives (pragmas). Different pragmas are suitable for different scenarios and cannot be applied arbitrarily. Below is a list of pragma descriptions and their applicable usage scenarios:
+    {pragma_desc}
 
-    async def run(self, proj_name: str, top_func: str, src_file: str, part: str, tcl_file: str):
-        top_func = read_file(top_func)
-        tcl = self.SET_PROJ_TCL.format(
-            proj_name=proj_name,
-            top_func=top_func,
-            src_file=src_file,
-            part=part
-        ).strip()
-        write_file(tcl, tcl_file)
+    Now, here is a code block representing one stage of an HLS algorithm:
+    {code_content}
 
-        cmd = ["vitis_hls", "-f", tcl_file]
-        try:
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
-            print("✅ Synthesis Completed Successfully!\n")
-            return None
-        except subprocess.CalledProcessError as e:
-            print("❌ Synthesis Failed.")
-            # 综合失败，处理输出结果
-            return e.stdout
+    [Task]
+    Your task is to analyze this code block and determine which optimization pragmas are appropriate for this specific stage. Choose only the pragmas that are most suitable and likely to improve the performance or area efficiency of this code stage.
+
+    [Note]
+    - Do not apply all available optimizations — only select the ones that are clearly applicable.
+    - You do not need to rewrite or modify the code.
+    - Please return your answer strictly in this format (no explanation): [option_1, option_2, ..., option_n]
+    - If you believe the code does not require any optimization, return `null`.
+    """
+
+    async def run(self, code_file):
+        code = read_file(code_file)
+        pragma_desc = ""
+        for opt in OPT_OPTIONS:
+            prompt_name = f"{opt}_PROMPT"
+            prompt_content = globals()[prompt_name]
+            pragma_desc += prompt_content
+        prompt = self.COMMON_PROMPT.format(
+            pragma_desc=pragma_desc,
+            code_content=code
+        )
+        rsp = await self._aask(prompt)
+        return rsp
 
 
 
@@ -246,3 +249,39 @@ class FixHLSOpt(Action):
         code_text = parse_code(rsp)
         write_file(code_text, file)
         return code_text
+
+
+class SynthHLSOpt(Action):
+    name: str = "SynthHLSOpt"
+
+    SET_PROJ_TCL: str = textwrap.dedent("""
+    open_project {proj_name}
+    set_top {top_func}
+    add_files {src_file}
+    open_solution solution1
+    set_part {part}
+    create_clock -period 10 -name default
+    csynth_design
+    exit
+    """)
+
+    async def run(self, proj_name: str, top_func: str, src_file: str, part: str, tcl_file: str):
+        top_func = read_file(top_func)
+        tcl = self.SET_PROJ_TCL.format(
+            proj_name=proj_name,
+            top_func=top_func,
+            src_file=src_file,
+            part=part
+        ).strip()
+        write_file(tcl, tcl_file)
+
+        cmd = ["vitis_hls", "-f", tcl_file]
+        try:
+            subprocess.run(cmd, capture_output=True, text=True, check=True)
+            print("✅ Synthesis Completed Successfully!\n")
+            return None
+        except subprocess.CalledProcessError as e:
+            print("❌ Synthesis Failed.")
+            # 综合失败，处理输出结果
+            return e.stdout
+

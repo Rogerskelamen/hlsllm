@@ -45,7 +45,7 @@ async def main(
         CTestExecutor(),
         HLSEngineer(),
         HLSBuildAssistant(),
-        # HLSPerfAnalyzer(),
+        HLSPerfAnalyzer(),
     ])
 
     team.invest(investment=investment)

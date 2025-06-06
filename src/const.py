@@ -3,10 +3,18 @@ from pathlib import Path
 COHERE_API_KEY = "mjdRsGDNbmRkn6kD3b1oxyvjlmSLpypc5mnOwZtl"
 
 # HLS Project constant
-HLS_PROJECT_NAME = "hlsProj"
-HLS_OPT_PROJECT_NAME = "hlsOptProj"
 SYNTH_TARGET_PART = "xc7z010clg400-1"
 
+# HLS Xilinx Optimization
+OPT_OPTIONS = ["ALLOCATION", "RESOURCE", "INLINE",
+               "FUNCTION_INSTANTIATE", "STREAM", "PIPELINE",
+               "OCCURRENCE", "UNROLL", "DEPENDENCE",
+               "LOOP_FLATTEN", "LOOP_MERGE", "LOOP_TRIPCOUNT",
+               "ARRAY_MAP", "ARRAY_PARTITION", "ARRAY_RESHAPE",
+               "DATA_PACK"]
+
+
+# Constant Path
 ROOT_PATH = Path(__file__).resolve().parent.parent
 
 BUILD_ALGO_DIR       = ROOT_PATH / "build"
