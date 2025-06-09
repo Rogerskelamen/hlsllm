@@ -13,6 +13,7 @@ from const import (
 )
 
 from hls.actions import (
+    ApplyOpt,
     ChooseOpt,
     CosimHLSCode,
     FixHLSCode,
@@ -152,25 +153,6 @@ class HLSBuildAssistant(Role):
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
-        # 优化HLS代码综合
-        elif isinstance(todo, SynthHLSOpt):
-            resp = await todo.run(
-                proj_name=HLS_OPT_PROJECT_NAME,
-                top_func=TOP_FUNCTION_FILE,
-                src_file=HLS_OPT_CODE_FILE,
-                part=SYNTH_TARGET_PART,
-                tcl_file=HLS_TCL_FILE
-            )
-
-            # HLS代码综合成功
-            if not resp:
-                logger.info(f"{self._setting}: hls source file successfully synthesised!")
-                msg = Message(content="hls source file successfully synthesised!", role=self.profile, cause_by=type(todo))
-
-            # 综合失败
-            else:
-                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSPerfAnalyzer")
-
         return msg
 
 
@@ -180,7 +162,7 @@ class HLSPerfAnalyzer(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([ChooseOpt, OptimizeHLSPerf, FixHLSOpt])
+        self.set_actions([ChooseOpt, ApplyOpt, OptimizeHLSPerf, FixHLSOpt])
         self._watch([])
 
     async def _think(self) -> bool:
@@ -188,6 +170,9 @@ class HLSPerfAnalyzer(Role):
 
         if msg.cause_by == "hls.actions.CosimHLSCode":
             self._set_state(self.find_state("ChooseOpt"))
+
+        elif msg.cause_by == "hls.actions.ChooseOpt":
+            self._set_state(self.find_state("ApplyOpt"))
 
         elif msg.cause_by == "hls.actions.SynthHLSOpt":
             self._set_state(self.find_state("FixHLSOpt"))
@@ -207,9 +192,15 @@ class HLSPerfAnalyzer(Role):
         # 选择优化策略
         if isinstance(todo, ChooseOpt):
             resp = await todo.run(config.src_file)
+            msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSPerfAnalyzer")
+
+        # 应用优化策略
+        elif isinstance(todo, ApplyOpt):
+            context = self.get_memories(k=1)[0]
+            opt_list = parse_opt_list(context.content)
+            resp = await todo.run(config.src_file, opt_list)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
-            opt_list = parse_opt_list(resp)
-            print(opt_list)
+
 
         elif isinstance(todo, OptimizeHLSPerf):
             resp = await todo.run(HLS_SRC_CODE_FILE, HLS_OPT_CODE_FILE)

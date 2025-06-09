@@ -2,10 +2,10 @@ ALLOCATION_PROMPT = \
 """
 pragma HLS allocation
 
-Function Overview: 
+Function Overview:
 pragma HLS allocation is a compilation directive to restrict the allocation of hardware resources within implemented kernels. It allows users to specify the number of instances to be limited in functions, loops, or code regions, thereby controlling resource usage in the generated hardware design.
 
-Application Scenes: 
+Application Scenes:
 - When there is a need to limit the number of hardware resource instances in specific functions, loops, or code regions for optimizing either resource utilization or performance.
 - In scenarios where there are multiple instances in the design, controlling resource usage by limiting the instance count for hardware-level optimization.
 """
@@ -20,7 +20,7 @@ Parameter Description:
     - operation: Applies allocation to operations listed in the instance list.
     - core: Applies allocation to kernels specified in the instance list, representing specific hardware components used in design creation.
 
-Usage Examples: 
+Usage Examples:
 - Limit the number of function instances in the RTL of a hardware kernel to 2:
 ```cpp
 #pragma HLS allocation instances=foo limit=2 function
@@ -33,7 +33,7 @@ RESOURCE_PROMPT = \
 pragma HLS resource
 
 Function Overview:
-pragma HLS resource is one of the compilation directives to specify particular library resources (cores) for implementing variables (arrays, arithmetic operations, or function parameters) in RTL. Users can control which core to use to implement operations in the code using this pragma. 
+pragma HLS resource is one of the compilation directives to specify particular library resources (cores) for implementing variables (arrays, arithmetic operations, or function parameters) in RTL. Users can control which core to use to implement operations in the code using this pragma.
 
 Application Scenes:
 - When there is a need to explicitly specify a particular core from the library for implementing a specific operation.
@@ -62,7 +62,7 @@ int foo(int a, int b) {
 
 2. In the example below, the variable coeffs[128] is a parameter of the top-level function foo_top. This example specifies using the core RAM_1P from the library to implement the coefficients.
 ```cpp
-#pragma HLS resource variable=coeffs core=RAM_1P  
+#pragma HLS resource variable=coeffs core=RAM_1P
 ```
 """
 
@@ -90,17 +90,17 @@ Parameter Description:
 Usage Examples:
 1. In the example below, all functions within the foo_top body will be inlined, but any lower-level functions within these functions will not be inlined.
 ```cpp
-void foo_top { a, b, c, d} { 
-#pragma HLS inline region 
+void foo_top { a, b, c, d} {
+#pragma HLS inline region
 ...
 ```
 
 2. In the example below, all functions within the foo_top body will be recursively inlined, but the function foo_sub will not be inlined. The recursive compilation directive is placed in the foo_top function, and the inline-off compilation directive is placed in the foo_sub function.
 ```cpp
-void foo_sub (p, q) { 
-#pragma HLS inline off 
-int q1 = q + 10; 
-foo(p1,q);// foo_3 
+void foo_sub (p, q) {
+#pragma HLS inline off
+int q1 = q + 10;
+foo(p1,q);// foo_3
 ...
 }
 
@@ -119,7 +119,7 @@ void copy_output(int *out, int out_lcl[OSize * OSize], int output) {
 #pragma HLS INLINE
     // Calculate each work_item's result update location
     int stride = output * OSize * OSize;
-    
+
     // Work_item updates output filter/image in DDR
     writeOut: for(int itr = 0; itr < OSize * OSize; itr++) {
         #pragma HLS PIPELINE
@@ -149,16 +149,16 @@ Parameter Description:
 Usage Example:
 1. In the following example, #pragma HLS function_instantiate is used to optimize the instantiation of the foo_sub function. This results in generating independent hardware implementations for each different incr parameter value, thereby improving overall performance.
 ```cpp
-char foo_sub(char inval, char incr) { 
-#pragma HLS function_instantiate variable=incr 
-return inval + incr; 
-} 
+char foo_sub(char inval, char incr) {
+#pragma HLS function_instantiate variable=incr
+return inval + incr;
+}
 
-void foo(char inval1, char inval2, char inval3, 
-         char *outval1, char *outval2, char *outval3) { 
-    *outval1 = foo_sub(inval1, 1); 
-    *outval2 = foo_sub(inval2, 2); 
-    *outval3 = foo_sub(inval3, 3); 
+void foo(char inval1, char inval2, char inval3,
+         char *outval1, char *outval2, char *outval3) {
+    *outval1 = foo_sub(inval1, 1);
+    *outval2 = foo_sub(inval2, 2);
+    *outval3 = foo_sub(inval3, 3);
 }
 ```
 """
@@ -224,8 +224,8 @@ Parameter Description:
 Usage Example:
 1. Pipelining function foo with an initiation interval of 1, in this example, by using #pragma HLS pipeline, the function foo is pipelined, enabling concurrent execution of operations to improve performance.
 ```c
-void foo { a, b, c, d} { 
-    #pragma HLS pipeline II=1 
+void foo { a, b, c, d} {
+    #pragma HLS pipeline II=1
     // ...
 }
 ```
@@ -251,8 +251,8 @@ Parameter Description:
 Usage Example:
 1. In the following example, the execution frequency of the Cond_Region is one-fourth of the surrounding code, indicating that the internal code is pipelined at a slower rate.
 ```cpp
-Cond_Region: { 
-#pragma HLS occurrence cycle=4 
+Cond_Region: {
+#pragma HLS occurrence cycle=4
 ...
 }
 ```
@@ -403,12 +403,12 @@ Parameter Description:
 Usage Example:
 1. pragma HLS loop_flatten is used to flatten the loop_1 and all loops above it in the function foo
 ```cpp
-void foo (num_samples, ...) { 
+void foo (num_samples, ...) {
     int i; ...
-    loop_1: for(i=0; i < num_samples; i++) { 
-        #pragma HLS loop_flatten 
+    loop_1: for(i=0; i < num_samples; i++) {
+        #pragma HLS loop_flatten
         ...
-        result = a + b; 
+        result = a + b;
     }
 }
 ```
@@ -455,8 +455,8 @@ void foo (num_samples, ...) {
 
 2. by using the force keyword, all loops inside loop_2 are forcefully merged, not just loop_2 itself
 ```cpp
-loop_2: for(i=0; i < num_samples; i++) { 
-    #pragma HLS loop_merge force 
+loop_2: for(i=0; i < num_samples; i++) {
+    #pragma HLS loop_merge force
     // Loop body
 }
 ```
@@ -523,31 +523,31 @@ Parameter Description:
 Usage Examples:
 1. Horizontal Mapping
 ```cpp
-void foo (...) { 
-    int8 array1[M]; 
-    int12 array2[N]; 
-    #pragma HLS ARRAY_MAP variable=array1 instance=array3 horizontal 
-    #pragma HLS ARRAY_MAP variable=array2 instance=array3 horizontal 
+void foo (...) {
+    int8 array1[M];
+    int12 array2[N];
+    #pragma HLS ARRAY_MAP variable=array1 instance=array3 horizontal
+    #pragma HLS ARRAY_MAP variable=array2 instance=array3 horizontal
     // ...
-    loop_1: for(i=0;i<M;i++) { 
-        array1[i] = ...; 
-        array2[i] = ...; 
+    loop_1: for(i=0;i<M;i++) {
+        array1[i] = ...;
+        array2[i] = ...;
         // ...
-    } 
+    }
     // ...
 }
 ```
 
 2. Horizontal Mapping, Arrays A[10] and B[15] are horizontally mapped to a single new array AB[25]
 ```cpp
-#pragma HLS array_map variable=A instance=AB horizontal  
-#pragma HLS array_map variable=B instance=AB horizontal 
+#pragma HLS array_map variable=A instance=AB horizontal
+#pragma HLS array_map variable=B instance=AB horizontal
 ```
 
 3. Vertical Mapping, Concatenate arrays C and D vertically into a new array CD, merging the bit widths of C and D
 ```cpp
-#pragma HLS array_map variable=C instance=CD vertical  
-#pragma HLS array_map variable=D instance=CD vertical 
+#pragma HLS array_map variable=C instance=CD vertical
+#pragma HLS array_map variable=D instance=CD vertical
 ```
 """
 
@@ -613,7 +613,7 @@ Parameter Description:
 - dim=<int>: Specifies which dimension of a multi-dimensional array to partition. 0 indicates partitioning all dimensions, while a non-zero value indicates partitioning only the specified dimension.
 
 Usage Examples:
-1. Use block mapping to reshape (partition and map) an 8-bit array AB[17] with 17 elements into a new 32-bit array with five elements. 
+1. Use block mapping to reshape (partition and map) an 8-bit array AB[17] with 17 elements into a new 32-bit array with five elements.
 ```cpp
 #pragma HLS array_reshape variable=AB block factor=4
 ```
@@ -621,7 +621,7 @@ factor = 4 indicates that the array should be divided into four copies.Therefore
 
 2. Reshape the two-dimensional array AB[6][4] into a new array of dimension [6][2], where dimension 2 has twice the bit width
 ```cpp
-#pragma HLS array_reshape variable=AB block factor=2 dim=2  
+#pragma HLS array_reshape variable=AB block factor=2 dim=2
 ```
 
 3. Reshape the 3D 8-bit array AB[4][2][2] in function foo into a new set of elements (a register),128 bits wide (4*2*2*8)
@@ -676,10 +676,10 @@ pixel AB;
 3. The DATA_PACK compilation directive is applied to input and output parameters of the rgb_to_hsv function, indicating to the compiler to pack structures on an 8-bit boundary to improve memory access.
 ```cpp
 void rgb_to_hsv(
-    RGBcolor* in, // Access global memory as RGBcolor structwise 
-    HSVcolor* out, // Access Global Memory as HSVcolor structwise 
-    int size) { 
-    #pragma HLS data_pack variable=in struct_level 
+    RGBcolor* in, // Access global memory as RGBcolor structwise
+    HSVcolor* out, // Access Global Memory as HSVcolor structwise
+    int size) {
+    #pragma HLS data_pack variable=in struct_level
     #pragma HLS data_pack variable=out struct_level ...
 }
 ```

@@ -4,7 +4,7 @@ import textwrap
 from metagpt.actions import Action
 from hls.rag import RAGCodeStyle, RAGOptTech
 
-from utils import parse_code, parse_opt_list, read_file, write_file
+from utils import parse_code, read_file, write_file
 
 from const import BUILD_ALGO_DIR, BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE, OPT_OPTIONS
 
@@ -154,7 +154,7 @@ class ChooseOpt(Action):
     In HLS, performance can be improved using various compiler directives (pragmas). Different pragmas are suitable for different scenarios and cannot be applied arbitrarily. Below is a list of pragma descriptions and their applicable usage scenarios:
     {pragma_desc}
 
-    Now, here is a code block representing one stage of an HLS algorithm:
+    Now, here is a code block representing an HLS algorithm:
     {code_content}
 
     [Task]
@@ -167,7 +167,7 @@ class ChooseOpt(Action):
     - If you believe the code does not require any optimization, return `null`.
     """
 
-    async def run(self, code_file):
+    async def run(self, code_file: str):
         code = read_file(code_file)
         pragma_desc = ""
         for opt in OPT_OPTIONS:
@@ -181,6 +181,48 @@ class ChooseOpt(Action):
         rsp = await self._aask(prompt)
         return rsp
 
+
+class ApplyOpt(Action):
+    name: str = "ApplyOpt"
+
+    COMMON_PROMPT: str = """
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about code optimization.
+
+    In HLS(high-level-synthesis), code optimization can be achieved by adding various types of compilation directive (pragmas). The following code is the whole algorithm:
+    {code_content}
+
+    [Task]
+    Your task is to insert the following HLS optimization pragmas into the code to improve hardware performance.
+
+    Please apply the following optimization pragma to the above code:
+    {opt_pragmas}
+
+    These pragmas come with descriptions and usage examples to guide proper insertion:
+    {pragma_demo}
+
+    [Requirements]
+    - Place each pragma in the most appropriate location based on its description and example.
+    - Only insert necessary pragmas to achieve optimal performance.
+    - Return ONLY the optimized code without any explaination.
+    """
+
+    async def run(self, code_file: str, opt_list: list[str]):
+        code = read_file(code_file)
+        opt_pragmas = ""
+        pragma_demo_full = ""
+        for i, opt_option in enumerate(opt_list):
+            opt_pragmas += str(i) + ". " + opt_option + "\n"
+            pragma_name = opt_option.split(" ")[-1].upper() + "_DEMO"
+            pragma_demo = globals()[pragma_name]
+            pragma_demo_full += str(i) + ". " + opt_option + ":\n" + pragma_demo + "\n"
+
+        prompt = self.COMMON_PROMPT.format(
+            code_content=code,
+            opt_pragmas=opt_pragmas,
+            pragma_demo=pragma_demo_full
+        )
+        rsp = await self._aask(prompt)
+        return rsp
 
 
 """
