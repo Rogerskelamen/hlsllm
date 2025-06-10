@@ -5,7 +5,7 @@ from metagpt.team import Team
 
 import config
 
-from const import BUILD_ALGO_DIR
+from const import BUILD_ALGO_DIR, BUILD_HLS_DIR
 from hls.roles import (
     HLSEngineer,
     HLSPerfAnalyzer,
@@ -35,6 +35,7 @@ async def main(
     config.head_file = BUILD_ALGO_DIR / f"{algo_name}.h"
     config.tb_file   = BUILD_ALGO_DIR / f"{algo_name}_tb.cpp"
     config.desc_file = BUILD_ALGO_DIR / f"{algo_name}.md"
+    config.hls_src   = BUILD_HLS_DIR / f"{algo_name}.cpp"
 
     # get algorithm description
     algo_desc = BUILD_ALGO_DIR / f"{algo_name}.md"

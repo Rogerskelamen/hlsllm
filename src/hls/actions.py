@@ -1,12 +1,13 @@
 import subprocess
 import textwrap
 
+from pathlib import Path
 from metagpt.actions import Action
 from hls.rag import RAGCodeStyle, RAGOptTech
 
-from utils import parse_code, read_file, write_file
+from utils import parse_code, read_file, cptb2hlsopt, write_file
 
-from const import BUILD_ALGO_DIR, BUILD_HLS_TCL_FILE, BUILD_SYNTH_TCL_FILE, OPT_OPTIONS
+from const import BUILD_ALGO_DIR, BUILD_SYNTH_TCL_FILE, OPT_OPTIONS
 
 from hls.prompt import *
 
@@ -44,11 +45,11 @@ class SynthHLSCode(Action):
 class CosimHLSCode(Action):
     name: str = "CosimHLSCode"
 
-    async def run(self):
-        cmd = ["vitis_hls", "-f", BUILD_HLS_TCL_FILE]
+    async def run(self, cwd: Path):
+        cmd = ["vitis_hls", "-f", cwd / "build.tcl"]
         process = subprocess.Popen(
             cmd,
-            cwd=BUILD_ALGO_DIR,
+            cwd=cwd,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
@@ -149,7 +150,7 @@ class ChooseOpt(Action):
     name: str = "ChooseOpt"
 
     COMMON_PROMPT: str = """
-    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about code optimization.
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about HLS code optimization.
 
     In HLS, performance can be improved using various compiler directives (pragmas). Different pragmas are suitable for different scenarios and cannot be applied arbitrarily. Below is a list of pragma descriptions and their applicable usage scenarios:
     {pragma_desc}
@@ -186,13 +187,14 @@ class ApplyOpt(Action):
     name: str = "ApplyOpt"
 
     COMMON_PROMPT: str = """
-    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about code optimization.
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about HLS code optimization.
 
-    In HLS(high-level-synthesis), code optimization can be achieved by adding various types of compilation directive (pragmas). The following code is the whole algorithm:
+    [Input]
+    The following code is the whole algorithm:
     {code_content}
 
     [Task]
-    Your task is to insert the following HLS optimization pragmas into the code to improve hardware performance.
+    In HLS, code optimization can be achieved by adding various types of compilation directive (pragmas). Your task is to insert the following HLS optimization pragmas into the code to improve hardware performance.
 
     Please apply the following optimization pragma to the above code:
     {opt_pragmas}
@@ -201,12 +203,12 @@ class ApplyOpt(Action):
     {pragma_demo}
 
     [Requirements]
-    - Place each pragma in the most appropriate location based on its description and example.
-    - Only insert necessary pragmas to achieve optimal performance.
-    - Return ONLY the optimized code without any explaination.
+    - Analyze the algorithm and insert pragmas only where appropriate, based on the purpose and scope described in the usage examples.
+    - ONLY insert necessary pragmas to achieve optimal performance.
+    - Return ONLY ```cpp your_optimized_code_here``` without any explaination.
     """
 
-    async def run(self, code_file: str, opt_list: list[str]):
+    async def run(self, code_file: str, opt_list: list[str], hls_src: str):
         code = read_file(code_file)
         opt_pragmas = ""
         pragma_demo_full = ""
@@ -222,7 +224,10 @@ class ApplyOpt(Action):
             pragma_demo=pragma_demo_full
         )
         rsp = await self._aask(prompt)
-        return rsp
+        cptb2hlsopt()
+        code_text = parse_code(rsp)
+        write_file(code_text, hls_src)
+        return code_text
 
 
 """

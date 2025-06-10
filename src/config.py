@@ -4,3 +4,4 @@ src_file: str = None
 head_file: str = None
 tb_file: str = None
 desc_file: str = None
+hls_src: str = None

@@ -6,10 +6,9 @@ from metagpt.schema import Message
 import config
 
 from const import (
+    BUILD_ALGO_DIR,
+    BUILD_HLS_DIR,
     HLS_OPT_CODE_FILE,
-    HLS_SRC_CODE_FILE,
-    HLS_TCL_FILE,
-    SYNTH_TARGET_PART,
 )
 
 from hls.actions import (
@@ -18,7 +17,6 @@ from hls.actions import (
     CosimHLSCode,
     FixHLSCode,
     FixHLSOpt,
-    OptimizeHLSPerf,
     RepairHLSCode,
     SynthHLSCode,
     SynthHLSOpt
@@ -86,7 +84,7 @@ class HLSBuildAssistant(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([SynthHLSCode, CosimHLSCode, SynthHLSOpt])
-        self._watch([RepairHLSCode, FixHLSCode, OptimizeHLSPerf, FixHLSOpt])
+        self._watch([RepairHLSCode, FixHLSCode, ApplyOpt, FixHLSOpt])
 
     async def _think(self) -> bool:
         msg = self.get_memories(k=1)[0]
@@ -94,11 +92,8 @@ class HLSBuildAssistant(Role):
         if msg.cause_by in ("nl2c.actions.RunCCode", "hls.actions.RepairHLSCode"):
             self._set_state(self.find_state("SynthHLSCode"))
 
-        elif msg.cause_by == "hls.actions.SynthHLSCode":
+        elif msg.cause_by in ("hls.actions.SynthHLSCode", "hls.actions.ApplyOpt"):
             self._set_state(self.find_state("CosimHLSCode"))
-
-        elif msg.cause_by in ("hls.actions.OptimizeHLSPerf", "hls.actions.FixHLSOpt"):
-            self._set_state(self.find_state("SynthHLSOpt"))
 
         else:
             self._set_state(-1)
@@ -110,6 +105,7 @@ class HLSBuildAssistant(Role):
     async def _act(self) -> Message:
         logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
         todo = self.rc.todo
+        msg = self.get_memories(k=1)[0]
 
         if isinstance(todo, SynthHLSCode):
             synth_tcl_gen()
@@ -130,28 +126,42 @@ class HLSBuildAssistant(Role):
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
         elif isinstance(todo, CosimHLSCode):
-            resp = await todo.run()
+            if msg.cause_by == "hls.actions.SynthHLSCode":
+                resp = await todo.run(BUILD_ALGO_DIR)
+                # HLS协同仿真成功
+                if not resp:
+                    logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
+                    msg = Message(
+                        content="HLS C/RTL Cosimulation passed!",
+                        role=self.profile,
+                        cause_by=type(todo),
+                        send_to="HLSPerfAnalyzer"
+                    )
+                    ###
+                    #### 保存协同仿真成功的数据集
+                    ###
+                    result = subprocess.run(
+                        ["cp", config.src_file, "out"],
+                        capture_output=True, text=True
+                    )
 
-            # HLS协同仿真成功
-            if not resp:
-                logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
-                msg = Message(
-                    content="HLS C/RTL Cosimulation passed!",
-                    role=self.profile,
-                    cause_by=type(todo),
-                    send_to="HLSPerfAnalyzer"
-                )
-                ###
-                #### 保存协同仿真成功的数据集
-                ###
-                result = subprocess.run(
-                    ["cp", config.src_file, "out"],
-                    capture_output=True, text=True
-                )
+                # 协同仿真失败
+                else:
+                    msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
-            # 协同仿真失败
+
+            elif msg.cause_by == "hls.actions.ApplyOpt":
+                resp = await todo.run(BUILD_HLS_DIR)
+                # HLS协同仿真成功
+                if not resp:
+                    logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
+                    msg = Message(
+                        content="HLS C/RTL Cosimulation passed!",
+                        role=self.profile,
+                        cause_by=type(todo),
+                    )
             else:
-                msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
+                raise ValueError(f"Unexpected message sender {msg.cause_by}")
 
         return msg
 
@@ -162,7 +172,7 @@ class HLSPerfAnalyzer(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([ChooseOpt, ApplyOpt, OptimizeHLSPerf, FixHLSOpt])
+        self.set_actions([ChooseOpt, ApplyOpt, FixHLSOpt])
         self._watch([])
 
     async def _think(self) -> bool:
@@ -198,13 +208,13 @@ class HLSPerfAnalyzer(Role):
         elif isinstance(todo, ApplyOpt):
             context = self.get_memories(k=1)[0]
             opt_list = parse_opt_list(context.content)
-            resp = await todo.run(config.src_file, opt_list)
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
-
-
-        elif isinstance(todo, OptimizeHLSPerf):
-            resp = await todo.run(HLS_SRC_CODE_FILE, HLS_OPT_CODE_FILE)
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
+            resp = await todo.run(
+                config.src_file,
+                opt_list,
+                config.hls_src
+            )
+            logger.info(f"{self._setting}: Apply all suitable optimizations")
+            msg = Message(content="Apply all suitable optimizations", role=self.profile, cause_by=type(todo), send_to="HLSBuildAssistant")
 
         # 优化的HLS代码综合失败，进行修复步骤
         elif isinstance(todo, FixHLSOpt):

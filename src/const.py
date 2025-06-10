@@ -17,8 +17,11 @@ OPT_OPTIONS = ["ALLOCATION", "RESOURCE", "INLINE",
 # Constant Path
 ROOT_PATH = Path(__file__).resolve().parent.parent
 
-BUILD_ALGO_DIR       = ROOT_PATH / "build"
-BUILD_HLS_TCL_FILE   = BUILD_ALGO_DIR / "build.tcl"
+BUILD_PATH           = ROOT_PATH / "build"
+BUILD_ALGO_DIR       = BUILD_PATH / "algo"
+BUILD_HLS_DIR        = BUILD_PATH / "hls"
+BUILD_ALGO_TCL_FILE  = BUILD_ALGO_DIR / "build.tcl"
+BUILD_HLS_TCL_FILE   = BUILD_HLS_DIR / "build.tcl"
 BUILD_FUNC_NAME_FILE = BUILD_ALGO_DIR / "top.txt"
 BUILD_EXE_ELF_PATH   = BUILD_ALGO_DIR / "main"
 BUILD_SYNTH_TCL_FILE = BUILD_ALGO_DIR / "synth.tcl"
