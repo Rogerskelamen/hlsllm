@@ -6,12 +6,11 @@ COHERE_API_KEY = "mjdRsGDNbmRkn6kD3b1oxyvjlmSLpypc5mnOwZtl"
 SYNTH_TARGET_PART = "xc7z010clg400-1"
 
 # HLS Xilinx Optimization
-OPT_OPTIONS = ["ALLOCATION", "RESOURCE", "INLINE",
+OPT_OPTIONS = ["ALLOCATION", "RESOURCE", "INLINE", "DATAFLOW",
                "FUNCTION_INSTANTIATE", "STREAM", "PIPELINE",
-               "OCCURRENCE", "UNROLL", "DEPENDENCE",
+               "OCCURRENCE", "UNROLL", "DEPENDENCE", "DATA_PACK",
                "LOOP_FLATTEN", "LOOP_MERGE", "LOOP_TRIPCOUNT",
-               "ARRAY_MAP", "ARRAY_PARTITION", "ARRAY_RESHAPE",
-               "DATA_PACK"]
+               "ARRAY_MAP", "ARRAY_PARTITION", "ARRAY_RESHAPE"]
 
 
 # Constant Path

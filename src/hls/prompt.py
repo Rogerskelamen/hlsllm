@@ -2,12 +2,13 @@ ALLOCATION_PROMPT = \
 """
 pragma HLS allocation
 
-Function Overview:
-pragma HLS allocation is a compilation directive to restrict the allocation of hardware resources within implemented kernels. It allows users to specify the number of instances to be limited in functions, loops, or code regions, thereby controlling resource usage in the generated hardware design.
+Pragma Overview:
+Pragma HLS allocation is a compilation directive to restrict the allocation of hardware resources within implemented kernels. It allows users to specify the number of instances to be limited in functions, loops, or code regions, thereby controlling resource usage in the generated hardware design.
 
 Application Scenes:
 - When there is a need to limit the number of hardware resource instances in specific functions, loops, or code regions for optimizing either resource utilization or performance.
 - In scenarios where there are multiple instances in the design, controlling resource usage by limiting the instance count for hardware-level optimization.
+- When you want to make multiple instances for one function or operation by setting limits(>1) in order to improve throughput.
 """
 
 ALLOCATION_DEMO = \
@@ -21,9 +22,17 @@ Parameter Description:
     - core: Applies allocation to kernels specified in the instance list, representing specific hardware components used in design creation.
 
 Usage Examples:
-- Limit the number of function instances in the RTL of a hardware kernel to 2:
+1. Limit the number of function instances in the RTL of a hardware kernel to 2:
 ```cpp
 #pragma HLS allocation instances=foo limit=2 function
+```
+
+2. Limits the number of multiplier operations used in the implementation of the function my_func to 1. This limit does not apply to any multipliers outside of my_func, or multipliers that might reside in sub-functions of my_func.
+```cpp
+void my_func(data_t angle) {
+  #pragma HLS allocation instances=mul limit=1 operation
+  ...
+}
 ```
 """
 
@@ -32,8 +41,8 @@ RESOURCE_PROMPT = \
 """
 pragma HLS resource
 
-Function Overview:
-pragma HLS resource is one of the compilation directives to specify particular library resources (cores) for implementing variables (arrays, arithmetic operations, or function parameters) in RTL. Users can control which core to use to implement operations in the code using this pragma.
+Pragma Overview:
+Pragma HLS resource is one of the compilation directives to specify particular library resources (cores) for implementing variables (arrays, arithmetic operations, or function parameters) in RTL. Users can control which core to use to implement operations in the code using this pragma.
 
 Application Scenes:
 - When there is a need to explicitly specify a particular core from the library for implementing a specific operation.
@@ -71,8 +80,8 @@ INLINE_PROMPT = \
 """
 pragma HLS inline
 
-Function Overview:
-pragma HLS inline is a compilation directive to control the inlining behavior of functions. Inlining removes functions as separate entities in the hierarchy by inserting the code of the called function directly at the call site, eliminating the need for a separate hierarchy. This directive allows users to selectively enable or disable inlining for functions and specify the scope and recursion level of inlining.
+Pragma Overview:
+Pragma HLS inline is a compilation directive to control the inlining behavior of functions. Inlining removes functions as separate entities in the hierarchy by inserting the code of the called function directly at the call site, eliminating the need for a separate hierarchy. This directive allows users to selectively enable or disable inlining for functions and specify the scope and recursion level of inlining. This can increase area required for implementing the RTL.
 
 Application Scenes:
 - When eliminating the hierarchy of function calls in RTL generation to improve code execution efficiency and sharing optimization.
@@ -90,7 +99,7 @@ Parameter Description:
 Usage Examples:
 1. In the example below, all functions within the foo_top body will be inlined, but any lower-level functions within these functions will not be inlined.
 ```cpp
-void foo_top { a, b, c, d} {
+void foo_top { a, b, c, d } {
 #pragma HLS inline region
 ...
 ```
@@ -133,7 +142,7 @@ FUNCTION_INSTANTIATE_PROMPT = \
 """
 pragma HLS function_instantiate
 
-Overview:
+Pragma Overview:
 pragma HLS function_instantiate directive is a compilation directive to optimize function instantiation, aiming to improve performance and reduce resource utilization. This directive allows the creation of unique hardware descriptions for each instance of a function, enabling targeted local optimizations. By default, all instances of the same function share a hardware implementation, but using this directive facilitates local optimizations for each instance.
 
 Application Scenes:
@@ -141,7 +150,7 @@ Application Scenes:
 - When there is a need to reduce the complexity of control logic while improving latency and throughput, using this directive effectively utilizes hardware resources.
 """
 
-FUNCTION_INLINE_DEMO = \
+FUNCTION_INSTANTIATE_DEMO = \
 """
 Parameter Description:
 - variable=<variable>: Specifies the function parameter for which instantiation optimization is required. This parameter is treated as a constant in each function instance call. Performing local optimizations on this parameter contributes to generating smaller and more efficient hardware implementations.
@@ -168,7 +177,7 @@ STREAM_PROMPT = \
 """
 pragma HLS stream
 
-Function Overview:
+Pragma Overview:
 pragma HLS stream is a compilation directive to specify the implementation approach for array variables. By default, arrays are implemented as RAM, but this directive allows the choice of implementing arrays as a streaming interface using FIFOs instead of RAM, offering a more efficient communication mechanism.
 
 Application Scenes:
@@ -192,12 +201,12 @@ Usage Examples:
 
 2. Implement array B as a streaming FIFO with a depth of 12
 ```cpp
-#pragma HLS STREAM variable=B depth=12
+#pragma HLS STREAM variable=B depth=12 type=fifo
 ```
 
-3. Disable streaming for array C, in this example, assuming config_dataflow is enabled
+3. Array C has streaming implemented as a PIPO
 ```cpp
-#pragma HLS STREAM variable=C off
+#pragma HLS STREAM variable=C type=pipo
 ```
 """
 
@@ -206,8 +215,9 @@ PIPELINE_PROMPT = \
 """
 pragma HLS pipeline
 
-Function Overview:
-pragma HLS pipeline is a compilation directive to reduce the initiation interval of functions or loops, thereby improving performance through concurrent execution of operations. It allows the pipelining of operations in functions or loops to process new inputs every N clock cycles, where N is the initiation interval (II) of the loop or function. The default II is 1, meaning a new input is processed every clock cycle.
+Pragma Overview:
+pragma HLS pipeline is a compilation directive to reduce the initiation interval of functions or loops, thereby improving performance through concurrent execution of operations. It allows the pipelining of operations in functions or loops to process new inputs every N clock cycles, where N is the initiation interval (II) of the loop or function. The default II is 1, meaning a new input is processed every clock cycle.  As a default behavior, with the PIPELINE pragma or directive Vitis HLS will generate the
+ minimum II for the design according to the specified clock period constraint. The emphasis will be on meeting timing, rather than on achieving II unless the II option is specified. If the Vitis HLS tool cannot create a design with the specified II, it issues a warning and creates a design with the lowest possible II.
 
 Application Scenes:
 - It is suitable for scenarios where reducing the initiation interval of functions or loops is desired to enhance concurrent performance.
@@ -223,10 +233,55 @@ Parameter Description:
 
 Usage Example:
 1. Pipelining function foo with an initiation interval of 1, in this example, by using #pragma HLS pipeline, the function foo is pipelined, enabling concurrent execution of operations to improve performance.
-```c
+```cpp
 void foo { a, b, c, d} {
     #pragma HLS pipeline II=1
     // ...
+}
+```
+
+2. Pipelining is applied to a loop that performs a threshold check, allowing the function to process one element per clock cycle.
+```cpp
+for (int i = 0; i < 256; i++) {
+    #pragma HLS pipeline II=1
+    if (in[i] > threshold)
+            out[i] = in[i];
+        else
+            out[i] = 0;
+    }
+}
+```
+
+3. In this example, #pragma HLS pipeline enables pipelining of a short arithmetic sequence to minimize latency and improve throughput.
+```cpp
+void multiply_accumulate(int A, int B, int C, int &D) {
+    #pragma HLS pipeline
+    int tmp = A * B;
+    D = tmp + C;
+}
+```
+
+4. In this example, the rewind option allows the loop to be restarted immediately after completion, enabling continuous processing.
+```cpp
+void cyclic_sum(int in[32], int &out) {
+    #pragma HLS pipeline rewind
+    int sum = 0;
+    for (int i = 0; i < 32; i++) {
+        sum += in[i];
+    }
+    out = sum;
+}
+```
+
+5. In this example, pipelining the inner loop of a nested loop enables parallel computation of matrix addition.
+```cpp
+void matrix_add(int A[16][16], int B[16][16], int C[16][16]) {
+    for (int i = 0; i < 16; i++) {
+        for (int j = 0; j < 16; j++) {
+            #pragma HLS pipeline II=1
+            C[i][j] = A[i][j] + B[i][j];
+        }
+    }
 }
 ```
 """
@@ -236,7 +291,7 @@ OCCURRENCE_PROMPT = \
 """
 pragma HLS Occurrence
 
-Function Overview:
+Pragma Overview:
 pragma HLS occurrence is used to specify that the code within a particular region has a lower execution frequency compared to the enclosing loop or function. This pragma allows for more efficient pipelining of code with lower execution frequency, potentially enabling sharing in the top-level pipeline.
 
 Application Scenes:
@@ -263,8 +318,8 @@ UNROLL_PROMPT = \
 """
 pragma HLS unroll
 
-Function Overview:
-pragma HLS unroll is a compilation directive to unroll loops, creating multiple independent operations instead of a single operation set. The UNROLL compilation directive transforms loops by creating multiple copies of the loop body in the RTL design, allowing parallel execution of some or all loop iterations.
+Pragma Overview:
+pragma HLS unroll is a compilation directive to unroll loops, creating multiple independent operations instead of a single operation set. The UNROLL compilation directive transforms loops by creating multiple copies of the loop body in the RTL design, allowing parallel execution of some or all loop iterations.  Loops in the C/C++ functions are kept rolled by default. When loops are rolled, synthesis creates the logic for one iteration of the loop, and the RTL design executes this logic for each iteration of the loop in sequence.  Using the UNROLL pragma you can unroll loops to increase data access and throughput.
 
 Application Scenes:
 - When increased loop parallelism is desired to enhance performance and throughput.
@@ -318,7 +373,7 @@ DEPENDENCE_PROMPT = \
 """
 pragma HLS dependence
 
-Function Overview:
+Pragma Overview:
 pragma HLS dependence is a compilation directive used to control loop dependencies. This directive provides additional information to overcome loop carry dependencies, allowing for loop pipelining or pipelining with lower intervals to optimize hardware performance.
 
 Application Scenes:
@@ -385,7 +440,7 @@ LOOP_FLATTEN_PROMPT = \
 """
 pragma HLS loop_flatten
 
-Function Overview:
+Pragma Overview:
 The pragma HLS loop_flatten allows the flattening of nested loops into a single loop hierarchy to improve latency. Flattening nested loops can reduce clock cycles, enabling greater optimization of loop body logic, particularly in RTL (Register-Transfer Level) implementations.
 
 Application Scenes:
@@ -427,7 +482,7 @@ LOOP_MERGE_PROMPT = \
 """
 pragma HLS loop_merge
 
-Function Overview:
+Pragma Overview:
 The pragma HLS loop_merge is used to merge consecutive loops into a single loop, reducing overall latency, promoting sharing, and improving logic optimization. Loop merging aims to decrease the number of clock cycles needed for transitions between loop body implementations in RTL (Register-Transfer Level) and allows for parallel implementation of loops.
 
 Application Scenes:
@@ -467,7 +522,7 @@ LOOP_TRIPCOUNT_PROMPT = \
 """
 pragma HLS loop_tripcount
 
-Function Overview:
+Pragma Overview:
 pragma HLS loop_tripcount is used to manually specify the total number of iterations for a loop. It aids the tool in analysis without affecting the synthesis results. This directive allows users to specify the minimum, maximum, and average iteration counts for a loop, enabling synthesis analysis and optimization in cases where the loop iteration count is unknown or cannot be determined dynamically.
 
 Application Scenes:
@@ -502,7 +557,7 @@ ARRAY_MAP_PROMPT = \
 """
 pragma HLS array_map
 
-Function Overview:
+Pragma Overview:
 pragma HLS array_map is used to combine multiple smaller arrays into a larger array, optimizing the utilization of block RAM resources. It supports two mapping methods: horizontal mapping, where original array elements are connected to create a new array, and vertical mapping, where array fields are connected to form a new array. The main purpose of this compilation directive is to more efficiently utilize block RAM units in FPGA physically.
 
 Application Scenes:
@@ -556,7 +611,7 @@ ARRAY_PARTITION_PROMPT = \
 """
 pragma HLS array_partition
 
-Function Overview:
+Pragma Overview:
 This pragma is used to partition arrays, dividing them into smaller arrays or individual elements. The partitioning results in generating multiple small memories or registers at the RTL (Register-Transfer Level) instead of a single large memory. This effectively increases the number of read and write ports, potentially enhancing the design's throughput.
 
 Application Scenes:
@@ -595,7 +650,7 @@ ARRAY_RESHAPE_PROMPT = \
 """
 pragma HLS array_reshape
 
-Function Overview:
+Pragma Overview:
 The array_reshape pragma is used to reshape arrays by combining the effects of array partitioning and vertical array mapping. It allows breaking down arrays into smaller ones while connecting array elements by increasing the bit width to enhance parallel access and enable access to more data within a single clock cycle. This directive creates a new array with fewer elements but a larger bit width.
 
 Application Scenes:
@@ -636,7 +691,7 @@ DATA_PACK_PROMPT = \
 """
 pragma HLS data_pack
 
-Function Overview:
+Pragma Overview:
 pragma HLS data_pack is a compilation directive to pack data fields of a structure into a scalar with a wider bit width. This helps reduce the memory required for variables while allowing simultaneous read and write access to all members of the structure. It is used in hardware design to optimize memory access and data storage.
 
 Application Scenes:
@@ -681,6 +736,69 @@ void rgb_to_hsv(
     int size) {
     #pragma HLS data_pack variable=in struct_level
     #pragma HLS data_pack variable=out struct_level ...
+}
+```
+"""
+
+DATAFLOW_PROMPT = \
+"""
+pragma HLS dataflow
+
+Pragma Overview:
+ The DATAFLOW pragma enables task-level pipelining, allowing functions and loops to overlap in their operation, increasing the concurrency of the RTL implementation, and increasing the overall throughput of the design.
+
+Application Scenes:
+- When multiple functions are executed in sequence, and the output of one is the input of the next.
+- The algorithm is composed of several computation stages (e.g., read → compute → write), where each stage can work independently.
+- A loop contains different regions or function calls that can be separated and executed concurrently.
+- The design contains several independent or partially dependent sub-tasks.
+- Subfunctions pass data through arrays or streams with potential dependencies.
+"""
+
+DATAFLOW_DEMO = \
+"""
+Parameter Description:
+This pragma has no parameters
+
+Usage Examples:
+1. pragma HLS dataflow is used to pipeline the execution of three sequential functions, allowing concurrent operation and improved throughput.
+```cpp
+void top(int *in, int *out) {
+    #pragma HLS dataflow
+    int buf1[100], buf2[100];
+
+    read_input(in, buf1);
+    process_data(buf1, buf2);
+    write_output(buf2, out);
+}
+```
+
+2. Using pragma HLS dataflow to overlap the execution of three loops for input loading, computation, and output storing.
+```cpp
+void top(int in[128], int out[128]) {
+    #pragma HLS dataflow
+    int buf1[128], buf2[128];
+
+    for (int i = 0; i < 128; i++)
+        buf1[i] = in[i];
+
+    for (int i = 0; i < 128; i++)
+        buf2[i] = buf1[i] * 2;
+
+    for (int i = 0; i < 128; i++)
+        out[i] = buf2[i];
+}
+```
+
+3. Pipelining dependent function calls with dataflow, where each function consumes the previous one's output via intermediate buffers.
+```cpp
+void top_pipeline(float A[64], float B[64], float C[64]) {
+    #pragma HLS dataflow
+    float tmp1[64], tmp2[64];
+
+    stage1(A, tmp1);
+    stage2(tmp1, tmp2);
+    stage3(tmp2, C);
 }
 ```
 """

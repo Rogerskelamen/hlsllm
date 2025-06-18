@@ -223,6 +223,7 @@ class ApplyOpt(Action):
             opt_pragmas=opt_pragmas,
             pragma_demo=pragma_demo_full
         )
+        print(pragma_demo_full)
         rsp = await self._aask(prompt)
         cptb2hlsopt()
         code_text = parse_code(rsp)
