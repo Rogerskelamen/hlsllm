@@ -21,7 +21,7 @@ from hls.actions import (
     SynthHLSCode,
     SynthHLSOpt
 )
-from utils import parse_opt_list, synth_tcl_gen
+from utils import parse_opt_list, report_output, synth_tcl_gen
 
 
 """
@@ -160,6 +160,7 @@ class HLSBuildAssistant(Role):
                         role=self.profile,
                         cause_by=type(todo),
                     )
+                    report_output()  # output Synthesis report to a certain file to compare
             else:
                 raise ValueError(f"Unexpected message sender {msg.cause_by}")
 
@@ -210,6 +211,7 @@ class HLSPerfAnalyzer(Role):
             opt_list = parse_opt_list(context.content)
             resp = await todo.run(
                 config.src_file,
+                config.head_file,
                 opt_list,
                 config.hls_src
             )

@@ -5,7 +5,7 @@ from metagpt.logs import logger
 
 from llama_index.core.schema import QueryType
 
-from const import COHERE_API_KEY, RAG_CODE_STYLE_PATH, RAG_CODE_STYLE_PERSIST_DIR, RAG_HLS_EXAMPLE_CODE_PATH, RAG_OPT_TECH_PATH, RAG_OPT_TECH_PERSIST_DIR, RAG_PP4FPGA_PATH
+from const import COHERE_API_KEY, RAG_CODE_STYLE_PATH, RAG_CODE_STYLE_PERSIST_DIR, RAG_HLS_EXAMPLE_CODE_PATH, RAG_OPT_METHOD_PATH, RAG_OPT_TECH_PATH, RAG_OPT_TECH_PERSIST_DIR
 
 
 class RAGCodeStyle:
@@ -74,7 +74,7 @@ class RAGOptTech:
     persist_dir = RAG_OPT_TECH_PERSIST_DIR
     dataset_codes = list(RAG_HLS_EXAMPLE_CODE_PATH.glob("**/*"))
     # dataset_files = [RAG_OPT_TECH_PATH, RAG_PP4FPGA_PATH] + [f for f in dataset_codes if f.is_file()]
-    dataset_files = [RAG_OPT_TECH_PATH, RAG_PP4FPGA_PATH]
+    dataset_files = [RAG_OPT_TECH_PATH, RAG_OPT_METHOD_PATH]
 
     # 创建单例类写法
     def __new__(cls):
@@ -87,7 +87,7 @@ class RAGOptTech:
         if self.__class__._initialized:
             return
 
-        logger.info("execute RAGPerfOpt.__init__")
+        logger.info("execute RAGOptTech.__init__")
 
         if self.persist_dir.exists():
             logger.info(f"Loading Existed persistent index from {self.persist_dir}!")

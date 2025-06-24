@@ -97,20 +97,20 @@ Parameter Description:
 - off: Disables function inlining, preventing specific functions from being automatically inlined when all other functions are inlined. Useful for preventing the automatic inlining of small functions.
 
 Usage Examples:
-1. In the example below, all functions within the foo_top body will be inlined, but any lower-level functions within these functions will not be inlined.
+1. This example inlines all functions within the region it is specified in, in this case the body of foo_top, but does not inline any lower level functions within those functions.
 ```cpp
 void foo_top { a, b, c, d } {
-#pragma HLS inline region
-...
+    #pragma HLS inline region
+    ...
 ```
 
-2. In the example below, all functions within the foo_top body will be recursively inlined, but the function foo_sub will not be inlined. The recursive compilation directive is placed in the foo_top function, and the inline-off compilation directive is placed in the foo_sub function.
+2. The following example, inlines all functions within the body of foo_top, inlining recursively down through the function hierarchy, except function foo_sub is not inlined. The recursive pragma is placed in function foo_top. The pragma to disable inlining is placed in the function foo_sub:
 ```cpp
 void foo_sub (p, q) {
-#pragma HLS inline off
-int q1 = q + 10;
-foo(p1,q);// foo_3
-...
+    #pragma HLS inline off
+    int q1 = q + 10;
+    foo(p1,q);// foo_3
+    ...
 }
 
 void foo_top { a, b, c, d} {
@@ -120,6 +120,7 @@ void foo_top { a, b, c, d} {
     foo(a,c);//foo_2
     foo_sub(a,d);
     ...
+}
 ```
 
 3. In the example below, the copy_output function will be inlined into any calling function or region.
@@ -753,6 +754,9 @@ Application Scenes:
 - A loop contains different regions or function calls that can be separated and executed concurrently.
 - The design contains several independent or partially dependent sub-tasks.
 - Subfunctions pass data through arrays or streams with potential dependencies.
+
+Some limitations should note:
+1. If all stages share the same array, then do NOT apply dataflow pragma.
 """
 
 DATAFLOW_DEMO = \
@@ -761,7 +765,27 @@ Parameter Description:
 This pragma has no parameters
 
 Usage Examples:
-1. pragma HLS dataflow is used to pipeline the execution of three sequential functions, allowing concurrent operation and improved throughput.
+1.  Specifies DATAFLOW optimization within the loop wr_loop_j.
+```cpp
+ wr_loop_j: for (int j = 0; j < TILE_PER_ROW; ++j) {
+#pragma HLS DATAFLOW
+    wr_buf_loop_m: for (int m = 0; m < TILE_HEIGHT; ++m) {
+        wr_buf_loop_n: for (int n = 0; n < TILE_WIDTH; ++n) {
+#pragma HLS PIPELINE
+            // should burst TILE_WIDTH in WORD beat
+            outFifo >> tile[m][n];
+        }
+    }
+    wr_loop_m: for (int m = 0; m < TILE_HEIGHT; ++m) {
+        wr_loop_n: for (int n = 0; n < TILE_WIDTH; ++n) {
+         #pragma HLS PIPELINE
+            outx[TILE_HEIGHT*TILE_PER_ROW*TILE_WIDTH*i
+    +TILE_PER_ROW*TILE_WIDTH*m+TILE_WIDTH*j+n] = tile[m][n];
+        }
+    }
+```
+
+2. pragma HLS dataflow is used to pipeline the execution of three sequential functions, allowing concurrent operation and improved throughput.
 ```cpp
 void top(int *in, int *out) {
     #pragma HLS dataflow
@@ -773,7 +797,7 @@ void top(int *in, int *out) {
 }
 ```
 
-2. Using pragma HLS dataflow to overlap the execution of three loops for input loading, computation, and output storing.
+3. Using pragma HLS dataflow to overlap the execution of three loops for input loading, computation, and output storing.
 ```cpp
 void top(int in[128], int out[128]) {
     #pragma HLS dataflow
@@ -790,7 +814,7 @@ void top(int in[128], int out[128]) {
 }
 ```
 
-3. Pipelining dependent function calls with dataflow, where each function consumes the previous one's output via intermediate buffers.
+4. Pipelining dependent function calls with dataflow, where each function consumes the previous one's output via intermediate buffers.
 ```cpp
 void top_pipeline(float A[64], float B[64], float C[64]) {
     #pragma HLS dataflow

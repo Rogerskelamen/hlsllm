@@ -2,8 +2,9 @@ import re
 import os
 import shutil
 import subprocess
+import config
 
-from const import BUILD_ALGO_DIR, BUILD_HLS_DIR, BUILD_ALGO_TCL_FILE, BUILD_SYNTH_TCL_FILE
+from const import BUILD_ALGO_DIR, BUILD_HLS_DIR, BUILD_ALGO_TCL_FILE, BUILD_REPORT_DIFF_FILE, BUILD_SYNTH_TCL_FILE
 
 def parse_code(rsp: str):
     pattern = r"```cpp(.*)```"
@@ -93,4 +94,40 @@ def cptb2hlsopt():
         # copy only if it's file type
         if os.path.isfile(src_path):
             shutil.copy2(src_path, dst_path)
+
+def report_output():
+    origin_report = BUILD_ALGO_DIR / config.algo_name / "solution1" / "syn" / "report" / "csynth.rpt"
+    hlsopt_report = BUILD_HLS_DIR / config.algo_name / "solution1" / "syn" / "report" / "csynth.rpt"
+    origin_perf = extract_perf_table_text(read_file(origin_report))
+    hlsopt_perf = extract_perf_table_text(read_file(hlsopt_report))
+    perf_diff = f"""
+    ===== Performance & Resource Estimates (Origin) ====
+
+    {origin_perf}
+
+    ===== Performance & Resource Estimates (After Optimized) ====
+
+    {hlsopt_perf}
+    """
+    write_file(perf_diff, BUILD_REPORT_DIFF_FILE)
+
+
+
+def extract_perf_table_text(report_text):
+    lines = report_text.splitlines()
+    start_flag = "+ Performance & Resource Estimates:"
+    table_start = False
+    table_lines = []
+
+    for line in lines:
+        if start_flag in line:
+            table_start = True
+            continue
+        if table_start:
+            if re.match(r"^=+", line):  # 表格结束标志（遇到下一个 section）
+                break
+            if line.strip():  # 跳过空行
+                table_lines.append(line)
+
+    return "\n".join(table_lines)
 

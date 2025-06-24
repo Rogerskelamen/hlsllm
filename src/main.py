@@ -21,7 +21,7 @@ from utils import pre_handle_testbench, read_file
 async def main(
     algo_path: str,
     investment: float = 3.0,
-    n_round: int = 6,
+    n_round: int = 8,
 ):
     # preprocess
     os.environ["TOKENIZERS_PARALLELISM"] = "false"

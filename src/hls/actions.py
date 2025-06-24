@@ -190,8 +190,11 @@ class ApplyOpt(Action):
     You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about HLS code optimization.
 
     [Input]
-    The following code is the whole algorithm:
+    The following is the complete source code of the algorithm:
     {code_content}
+
+    The following is the header file (for reference only, e.g., macros or constants):
+    {head_file}
 
     [Task]
     In HLS, code optimization can be achieved by adding various types of compilation directive (pragmas). Your task is to insert the following HLS optimization pragmas into the code to improve hardware performance.
@@ -199,17 +202,33 @@ class ApplyOpt(Action):
     Please apply the following optimization pragma to the above code:
     {opt_pragmas}
 
-    These pragmas come with descriptions and usage examples to guide proper insertion:
+    Each pragma is accompanied by a description and usage examples to guide proper insertion:
     {pragma_demo}
 
+    [Guidance]
+    When applying `#pragma HLS array_partition` to arrays such as `int A[SIZE][SIZE]`, please reason carefully before choosing the partition type.
+
+    Step-by-step guidance:
+    1. Refer to the header file to determine the actual value of `SIZE`.
+    2. If the dimension size is **less than or equal to 20**, then it is acceptable to use `complete` partitioning.
+       - Example: For `int A[10][10]`, use `#pragma HLS array_partition variable=A complete dim=2`
+    3. If the dimension size is **greater than 20**, you must NOT use `complete`. Use `block` or `cyclic` instead, and choose an appropriate `factor` based on memory access pattern and loop structure.
+       - Example: For `float B[64][64]`, use `#pragma HLS array_partition variable=B block factor=8 dim=2`
+
+
     [Requirements]
+    - Use `complete` array partitioning ONLY when the array dimension is small (typically ≤ 20). For larger arrays, consider using `block` or `cyclic` partitioning to balance parallelism and resource utilization.
+    - Ensure the array_partition pragma is inserted right after the array is declared, not before or elsewhere.
+    - Prefer inserting `#pragma HLS pipeline` in the innermost loop to maximize pipelining efficiency, unless the loop has very few iterations, in which case pipelining may not be beneficial.
     - Analyze the algorithm and insert pragmas only where appropriate, based on the purpose and scope described in the usage examples.
-    - ONLY insert necessary pragmas to achieve optimal performance.
-    - Return ONLY ```cpp your_optimized_code_here``` without any explaination.
+    - DO NOT delete or modify existing code, ONLY insert necessary pragma directives to achieve optimal performance
+    - DO NOT return any content in header file.
+    - Return ONLY ```cpp your_optimized_code_here``` without any explanation.
     """
 
-    async def run(self, code_file: str, opt_list: list[str], hls_src: str):
+    async def run(self, code_file: str, head_file: str, opt_list: list[str], hls_src: str):
         code = read_file(code_file)
+        head = read_file(head_file)
         opt_pragmas = ""
         pragma_demo_full = ""
         for i, opt_option in enumerate(opt_list):
@@ -220,10 +239,12 @@ class ApplyOpt(Action):
 
         prompt = self.COMMON_PROMPT.format(
             code_content=code,
+            head_file=head,
             opt_pragmas=opt_pragmas,
             pragma_demo=pragma_demo_full
         )
         print(pragma_demo_full)
+        # rsp = await RAGOptTech().aask(prompt)
         rsp = await self._aask(prompt)
         cptb2hlsopt()
         code_text = parse_code(rsp)
