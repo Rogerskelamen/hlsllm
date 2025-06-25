@@ -12,34 +12,22 @@ OPT_OPTIONS = ["ALLOCATION", "RESOURCE", "INLINE", "DATAFLOW",
                "LOOP_FLATTEN", "LOOP_MERGE", "LOOP_TRIPCOUNT",
                "ARRAY_MAP", "ARRAY_PARTITION", "ARRAY_RESHAPE"]
 
+LOOP_STRATS = ["LOOP_MERGING", "LOOP_INTERCHANGE", "LOOP_TILING"]
 
 # Constant Path
 ROOT_PATH = Path(__file__).resolve().parent.parent
 
-BUILD_PATH           = ROOT_PATH / "build"
-BUILD_ALGO_DIR       = BUILD_PATH / "algo"
-BUILD_HLS_DIR        = BUILD_PATH / "hls"
-BUILD_ALGO_TCL_FILE  = BUILD_ALGO_DIR / "build.tcl"
-BUILD_HLS_TCL_FILE   = BUILD_HLS_DIR / "build.tcl"
-BUILD_FUNC_NAME_FILE = BUILD_ALGO_DIR / "top.txt"
-BUILD_EXE_ELF_PATH   = BUILD_ALGO_DIR / "main"
-BUILD_SYNTH_TCL_FILE = BUILD_ALGO_DIR / "synth.tcl"
-BUILD_REPORT_DIFF_FILE = BUILD_PATH / "perf.rpt"
+BUILD_DIR              = ROOT_PATH / "build"
+BUILD_TCL_FILE         = BUILD_DIR / "build.tcl"
+BUILD_FUNC_NAME_FILE   = BUILD_DIR / "top.txt"
+BUILD_EXE_ELF_PATH     = BUILD_DIR / "main"
+BUILD_SYNTH_TCL_FILE   = BUILD_DIR / "synth.tcl"
+BUILD_REPORT_DIFF_FILE = BUILD_DIR / "perf.rpt"
 
-IMPLEMENT_DIR = ROOT_PATH / "impl"
-IMPLEMENT_FILE_PATH = IMPLEMENT_DIR / "impl.cpp"
-IMPLEMENT_TEST_FILE_PATH = IMPLEMENT_DIR / "impl_test.cpp"
-IMPLEMENT_TEST_EXE_PATH = IMPLEMENT_DIR / "impl_test"
-TOP_FUNCTION_FILE = IMPLEMENT_DIR / "top_function"
-
-REFERENCE_DIR = ROOT_PATH / "ref"
-REFERENCE_FILE_PATH = REFERENCE_DIR / "reference.json"
-TESTBENCH_FILE_PATH = REFERENCE_DIR / "testbench.cpp"
-
-HLS_PATH = ROOT_PATH / "hls"
-HLS_SRC_CODE_FILE = HLS_PATH / "hlscode.cpp"
-HLS_TCL_FILE = HLS_PATH / "script.tcl"
-HLS_OPT_CODE_FILE = HLS_PATH / "hlsopt.cpp"
+# Project related
+ORIGIN_SOLUTION_NAME = "solution1"
+LOOP_SOLUTION_NAME = "solution2"
+PRAGMA_SOLUTION_NAME = "solution3"
 
 # RAG related
 RAG_PATH = ROOT_PATH / "rag"
