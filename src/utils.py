@@ -2,9 +2,9 @@ import re
 import os
 import shutil
 import subprocess
-import config
 
-from const import BUILD_ALGO_DIR, BUILD_HLS_DIR, BUILD_ALGO_TCL_FILE, BUILD_REPORT_DIFF_FILE, BUILD_SYNTH_TCL_FILE
+from config import DataConfig
+from const import BUILD_DIR, BUILD_TCL_FILE, BUILD_REPORT_DIFF_FILE, BUILD_SYNTH_TCL_FILE, LOOP_SOLUTION_NAME, ORIGIN_SOLUTION_NAME
 
 def parse_code(rsp: str):
     pattern = r"```cpp(.*)```"
@@ -49,10 +49,10 @@ def write_file(content: str, path: str) -> None:
 
 def pre_handle_testbench(path: str) -> str:
     # 1. copy testbench
-    subprocess.run(["cp", path, "-r", BUILD_ALGO_DIR])
+    subprocess.run(["cp", path, "-r", BUILD_DIR])
     # 2. remove algorithm source file
     algo_name = os.path.basename(path.rstrip('/'))
-    subprocess.run(["rm", BUILD_ALGO_DIR / (algo_name + ".cpp")])
+    subprocess.run(["rm", BUILD_DIR / (algo_name + ".cpp")])
     return algo_name
 
 
@@ -60,7 +60,7 @@ def synth_tcl_gen():
     # check if synth.tcl exists
     if not os.path.exists(BUILD_SYNTH_TCL_FILE):
         # copy build.tcl to get a new tcl
-        copy_tcl_cmd = ["cp", BUILD_ALGO_TCL_FILE, BUILD_SYNTH_TCL_FILE]
+        copy_tcl_cmd = ["cp", BUILD_TCL_FILE, BUILD_SYNTH_TCL_FILE]
         subprocess.run(copy_tcl_cmd, capture_output=True, text=True)
 
         # delete line 10 (cosim)
@@ -96,10 +96,11 @@ def cptb2hlsopt():
             shutil.copy2(src_path, dst_path)
 
 def report_output():
-    origin_report = BUILD_ALGO_DIR / config.algo_name / "solution1" / "syn" / "report" / "csynth.rpt"
-    hlsopt_report = BUILD_HLS_DIR / config.algo_name / "solution1" / "syn" / "report" / "csynth.rpt"
+    project_path = BUILD_DIR / DataConfig().algo_name
+    origin_report = project_path / ORIGIN_SOLUTION_NAME / "syn" / "report" / "csynth.rpt"
+    loop_opt_report = project_path / LOOP_SOLUTION_NAME / "syn" / "report" / "csynth.rpt"
     origin_perf = extract_perf_table_text(read_file(origin_report))
-    hlsopt_perf = extract_perf_table_text(read_file(hlsopt_report))
+    loop_opt_perf = extract_perf_table_text(read_file(loop_opt_report))
     perf_diff = f"""
     ===== Performance & Resource Estimates (Origin) ====
 
@@ -107,7 +108,7 @@ def report_output():
 
     ===== Performance & Resource Estimates (After Optimized) ====
 
-    {hlsopt_perf}
+    {loop_opt_perf}
     """
     write_file(perf_diff, BUILD_REPORT_DIFF_FILE)
 
@@ -131,3 +132,13 @@ def extract_perf_table_text(report_text):
 
     return "\n".join(table_lines)
 
+
+def build_with_other_solution(solution_name):
+    with open(BUILD_TCL_FILE, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    # 替换第3行和第5行（注意索引从0开始）
+    lines[4] = f"open_solution {solution_name}\n"  # hardcode for now
+
+    with open(BUILD_TCL_FILE, "w", encoding="utf-8") as f:
+        f.writelines(lines)

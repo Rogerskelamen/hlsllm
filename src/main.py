@@ -3,10 +3,11 @@ import os
 
 from metagpt.team import Team
 
-import config
+from config import DataConfig
+from const import BUILD_DIR
 
-from const import BUILD_ALGO_DIR, BUILD_HLS_DIR
 from hls.roles import (
+    HLSCodeReviewer,
     HLSEngineer,
     HLSPerfAnalyzer,
     HLSBuildAssistant
@@ -30,15 +31,16 @@ async def main(
     algo_name = pre_handle_testbench(algo_path)
 
     # store algorithm name and other files
-    config.algo_name = algo_name
-    config.src_file  = BUILD_ALGO_DIR / f"{algo_name}.cpp"
-    config.head_file = BUILD_ALGO_DIR / f"{algo_name}.h"
-    config.tb_file   = BUILD_ALGO_DIR / f"{algo_name}_tb.cpp"
-    config.desc_file = BUILD_ALGO_DIR / f"{algo_name}.md"
-    config.hls_src   = BUILD_HLS_DIR / f"{algo_name}.cpp"
+    DataConfig(
+        algo_name = algo_name,
+        src_file  = BUILD_DIR / f"{algo_name}.cpp",
+        head_file = BUILD_DIR / f"{algo_name}.h",
+        tb_file   = BUILD_DIR / f"{algo_name}_tb.cpp",
+        desc_file = BUILD_DIR / f"{algo_name}.md",
+    )
 
     # get algorithm description
-    algo_desc = BUILD_ALGO_DIR / f"{algo_name}.md"
+    algo_desc = BUILD_DIR / f"{algo_name}.md"
 
     team = Team()
     team.hire([
@@ -46,7 +48,8 @@ async def main(
         CTestExecutor(),
         HLSEngineer(),
         HLSBuildAssistant(),
-        HLSPerfAnalyzer(),
+        HLSCodeReviewer(),
+        # HLSPerfAnalyzer(),
     ])
 
     team.invest(investment=investment)

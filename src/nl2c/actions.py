@@ -40,11 +40,11 @@ class WriteAlgorithmCode(Action):
 
     [Requirements]
     - **DO remember to include the specified header file using `#include "{header_name}"`**.
-    - DO NOT add any macros that is already defined in header file.
+    - Do NOT add any macros that is already defined in header file.
     - Implement the top function described in the algorithm description, along with any sub-component functions that are directly called by it.
-    - DO NOT write a main function, any test code, or additional unrelated content.
-    - DO NOT include any standard library headers(e.g. <cmath>) unless they are strictly required by the code implementation. If the function does not use any standard library features, no headers should be included.
-    - DO NOT add any HLS pragmas or directives, DO NOT include HLS-specific headers provided by Vitis HLS.
+    - Do NOT write a main function, any test code, or additional unrelated content.
+    - Do NOT include any standard library headers(e.g. <cmath>) unless they are strictly required by the code implementation. If the function does not use any standard library features, no headers should be included.
+    - Do NOT add any HLS pragmas or directives, Do NOT include HLS-specific headers provided by Vitis HLS.
     - Add clear and concise comments to explain key parts of the implementation.
     - Follows modern C++ best practices to ensure reusable and readable.
     - Return ```cpp your_code_here```, NO additional text.
@@ -86,8 +86,8 @@ class FixCompileErr(Action):
 
     [Requirements]
     - Provide only the corrected version of the algorithm function.
-    - DO NOT add, remove, or modify functionality—just fix the compilation issue.
-    - DO NOT include a main function, test code, or additional explanation.
+    - Do NOT add, remove, or modify functionality—just fix the compilation issue.
+    - Do NOT include a main function, test code, or additional explanation.
     - Return ```cpp your_fix_code_here```, NO additional text
     """
 

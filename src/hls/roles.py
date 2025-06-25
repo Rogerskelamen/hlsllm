@@ -3,15 +3,10 @@ from metagpt.roles import Role
 from metagpt.logs import logger
 from metagpt.schema import Message
 
-import config
-
-from const import (
-    BUILD_ALGO_DIR,
-    BUILD_HLS_DIR,
-    HLS_OPT_CODE_FILE,
-)
-
+from config import DataConfig
+from const import LOOP_SOLUTION_NAME
 from hls.actions import (
+    ApplyLoopStrategy,
     ApplyOpt,
     ChooseOpt,
     CosimHLSCode,
@@ -21,7 +16,7 @@ from hls.actions import (
     SynthHLSCode,
     SynthHLSOpt
 )
-from utils import parse_opt_list, report_output, synth_tcl_gen
+from utils import build_with_other_solution, parse_opt_list, report_output, synth_tcl_gen, write_file
 
 
 """
@@ -84,7 +79,7 @@ class HLSBuildAssistant(Role):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.set_actions([SynthHLSCode, CosimHLSCode, SynthHLSOpt])
-        self._watch([RepairHLSCode, FixHLSCode, ApplyOpt, FixHLSOpt])
+        self._watch([RepairHLSCode, FixHLSCode, ApplyLoopStrategy, ApplyOpt, FixHLSOpt])
 
     async def _think(self) -> bool:
         msg = self.get_memories(k=1)[0]
@@ -92,7 +87,12 @@ class HLSBuildAssistant(Role):
         if msg.cause_by in ("nl2c.actions.RunCCode", "hls.actions.RepairHLSCode"):
             self._set_state(self.find_state("SynthHLSCode"))
 
-        elif msg.cause_by in ("hls.actions.SynthHLSCode", "hls.actions.ApplyOpt"):
+        elif msg.cause_by in (
+                "hls.actions.SynthHLSCode",
+                "hls.actions.FixHLSCode",
+                "hls.actions.ApplyLoopStrategy",
+                "hls.actions.ApplyOpt"
+            ):
             self._set_state(self.find_state("CosimHLSCode"))
 
         else:
@@ -126,8 +126,9 @@ class HLSBuildAssistant(Role):
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
         elif isinstance(todo, CosimHLSCode):
+            # 第一次协同仿真测试
             if msg.cause_by == "hls.actions.SynthHLSCode":
-                resp = await todo.run(BUILD_ALGO_DIR)
+                resp = await todo.run()
                 # HLS协同仿真成功
                 if not resp:
                     logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
@@ -135,13 +136,14 @@ class HLSBuildAssistant(Role):
                         content="HLS C/RTL Cosimulation passed!",
                         role=self.profile,
                         cause_by=type(todo),
-                        send_to="HLSPerfAnalyzer"
+                        # send_to="HLSPerfAnalyzer",
+                        send_to="HLSCodeReviewer",
                     )
                     ###
                     #### 保存协同仿真成功的数据集
                     ###
                     result = subprocess.run(
-                        ["cp", config.src_file, "out"],
+                        ["cp", DataConfig().src_file, "out"],
                         capture_output=True, text=True
                     )
 
@@ -149,9 +151,9 @@ class HLSBuildAssistant(Role):
                 else:
                     msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
-
-            elif msg.cause_by == "hls.actions.ApplyOpt":
-                resp = await todo.run(BUILD_HLS_DIR)
+            # Loop优化完成后第二次协同仿真
+            elif msg.cause_by == "hls.actions.ApplyLoopStrategy":
+                resp = await todo.run()
                 # HLS协同仿真成功
                 if not resp:
                     logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
@@ -222,6 +224,55 @@ class HLSPerfAnalyzer(Role):
         elif isinstance(todo, FixHLSOpt):
             msg = self.get_memories(k=1)[0]
             resp = await todo.run(HLS_OPT_CODE_FILE, msg)
+            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
+
+        return msg
+
+
+class HLSCodeReviewer(Role):
+    name: str = "HLSCodeReviewer"
+    profile: str = "review hls code then change code structure to improve performance"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.set_actions([ApplyLoopStrategy])
+        self._watch([])
+
+    async def _think(self) -> bool:
+        msg = self.get_memories(k=1)[0]
+
+        if msg.cause_by == "hls.actions.CosimHLSCode":
+            self._set_state(self.find_state("ApplyLoopStrategy"))
+
+        else:
+            self._set_state(-1)
+            logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
+            raise ValueError(f"Unexpected message: {msg}")
+
+        return True
+
+
+    async def _act(self) -> Message:
+        logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
+        todo = self.rc.todo
+
+        # 应用内部循环的结构性优化
+        if isinstance(todo, ApplyLoopStrategy):
+            resp = await todo.run(DataConfig().src_file)
+            cmd = [
+                "mv",
+                DataConfig().src_file,
+                DataConfig().get_origin_src_file()
+            ]
+            subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True
+            )
+            # save loop optimization code
+            write_file(resp, DataConfig().src_file)
+            # change build.tcl(mainly solution name)
+            build_with_other_solution(LOOP_SOLUTION_NAME)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg

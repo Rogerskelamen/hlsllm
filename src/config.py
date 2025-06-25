@@ -1,3 +1,5 @@
+from const import BUILD_DIR
+
 class DataConfig:
     _instance = None
     _initialized = False
@@ -39,5 +41,8 @@ class DataConfig:
         return cls._instance
 
 
-    def get_loop_file(self):
-        return self.algo_name + "_loop.cpp"
+    def get_origin_src_file(self):
+        return BUILD_DIR / f"{self.algo_name}_origin.cpp"
+
+    def get_loop_opt_file(self):
+        return BUILD_DIR / f"{self.algo_name}_loop.cpp"

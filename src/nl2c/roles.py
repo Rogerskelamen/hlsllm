@@ -3,9 +3,9 @@ from metagpt.actions import UserRequirement
 from metagpt.logs import logger
 from metagpt.schema import Message
 
-import config
+from config import DataConfig
 from const import (
-    BUILD_ALGO_DIR,
+    BUILD_DIR,
     BUILD_EXE_ELF_PATH,
 )
 
@@ -60,13 +60,13 @@ class CodeProgrammer(Role):
         if isinstance(todo, WriteAlgorithmCode):
             resp = await todo.run(
                 msg.content,
-                config.head_file,
-                fpath=config.src_file
+                DataConfig().head_file,
+                fpath=DataConfig().src_file
             )
 
         # 根据源码和编译错误信息修正代码
         elif isinstance(todo, FixCompileErr):
-            resp = await todo.run(msg.content, config.src_file)
+            resp = await todo.run(msg.content, DataConfig().src_file)
 
         # 根据源代码和运行错误信息修正代码
         elif isinstance(todo, FixCCode):
@@ -75,9 +75,9 @@ class CodeProgrammer(Role):
             print(first_30_lines)
             resp = await todo.run(
                 error=first_30_lines,
-                src_file=config.src_file,
-                head_file=config.head_file,
-                desc_file=config.desc_file
+                src_file=DataConfig().src_file,
+                head_file=DataConfig().head_file,
+                desc_file=DataConfig().desc_file
             )
 
         msg = Message(content=resp, role=self.profile, cause_by=type(todo))
@@ -125,8 +125,8 @@ class CTestExecutor(Role):
         if isinstance(todo, CompileCCode):
             [retcode, resp] = await todo.run(
                 [
-                    config.src_file,
-                    config.tb_file
+                    DataConfig().src_file,
+                    DataConfig().tb_file
                 ],
                 BUILD_EXE_ELF_PATH
             )  # compile result
@@ -143,7 +143,7 @@ class CTestExecutor(Role):
 
         # 运行测试代码
         elif isinstance(todo, RunCCode):
-            [retcode, resp] = await todo.run(BUILD_EXE_ELF_PATH, BUILD_ALGO_DIR)  # runtime result
+            [retcode, resp] = await todo.run(BUILD_EXE_ELF_PATH, BUILD_DIR)  # runtime result
 
             # 程序运行通过
             if retcode == 0:

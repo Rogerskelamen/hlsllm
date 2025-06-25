@@ -1,15 +1,15 @@
 import subprocess
 import textwrap
 
-from pathlib import Path
 from metagpt.actions import Action
 from hls.rag import RAGCodeStyle, RAGOptTech
 
 from utils import parse_code, read_file, cptb2hlsopt, write_file
 
-from const import BUILD_ALGO_DIR, BUILD_SYNTH_TCL_FILE, OPT_OPTIONS
+from const import BUILD_DIR, BUILD_SYNTH_TCL_FILE, BUILD_TCL_FILE, LOOP_STRATS, OPT_OPTIONS
 
-from hls.prompt import *
+from prompt.pragma import *
+from prompt.loop import *
 
 class SynthHLSCode(Action):
     name: str = "SynthHLSCode"
@@ -18,7 +18,7 @@ class SynthHLSCode(Action):
         cmd = ["vitis_hls", "-f", BUILD_SYNTH_TCL_FILE]
         process = subprocess.Popen(
             cmd,
-            cwd=BUILD_ALGO_DIR,
+            cwd=BUILD_DIR,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
@@ -45,11 +45,11 @@ class SynthHLSCode(Action):
 class CosimHLSCode(Action):
     name: str = "CosimHLSCode"
 
-    async def run(self, cwd: Path):
-        cmd = ["vitis_hls", "-f", cwd / "build.tcl"]
+    async def run(self):
+        cmd = ["vitis_hls", "-f", BUILD_TCL_FILE]
         process = subprocess.Popen(
             cmd,
-            cwd=cwd,
+            cwd=BUILD_DIR,
             text=True,
             stdout=subprocess.PIPE,
             stderr=subprocess.STDOUT
@@ -252,41 +252,46 @@ class ApplyOpt(Action):
         return code_text
 
 
-"""
-这个动作待优化，在该动作之前可以进行一些预处理或者分析操作，比如：
-1. 对复杂算法进行拆分，单函数 -> 多个子函数
-2. 分析C++代码中计算量大的部分(分析工具)，针对性优化
-3. 使用更高抽象的角度分析函数的调用来对硬件实现进行优化
-
-同样的，在优化动作之后，也可以采用一些措施提高优化程度，比如：
-1. 使用DSE(设计空间探索)工具来分析可用优化
-"""
-class OptimizeHLSPerf(Action):
-    name: str = "OptimizeHLSPerf"
+class ApplyLoopStrategy(Action):
+    name: str = "ApplyLoopStrategy"
 
     COMMON_PROMPT: str = """
-    You are an expert in Vitis HLS and hardware acceleration, with the skill to analyze HLS code and improve hardware performance.
+    You are a hardware expert specializing in Xilinx Vitis HLS, with deep knowledge about HLS code optimization.
 
     [Task]
-    Analyze the following C++ HLS code and optimize it for better performance using appropriate HLS pragmas (such as #pragma HLS PIPELINE, UNROLL, ARRAY_PARTITION, etc.) without changing its functionality.
+    Given the HLS source code with a suboptimal loop structure and a set of potential loop optimization strategies, identify which strategies are applicable to the code. Apply the selected strategies directly to the HLS source code to improve its performance.
 
-    [C++ HLS Code]
-    {code}
+    [HLS Code]
+    {code_content}
+
+    [Loop Optimization Strategy]
+    {loop_strategy}
+
+    [Instructions]
+    Let's think step by step.
+    Firstly, carefully read and understand all the loop optimization strategies provided in the list.
+    Then, analyze the given HLS code to determine which strategies are applicable.
+    Finally, apply the selected optimization strategies to the code by restructuring loops.
 
     [Requirements]
-    - Identify and explain potential performance bottlenecks
-    - Apply optimization techniques and relevant HLS pragmas
-    - DO preserve original functionality
-    - Ouput the optimized code only, NO other explanation text
-    - Return ```cpp your_code_here```, NO additional text
+    - ONLY modify the structure of loops where appropriate.
+    - Do NOT alter the core functionality or logic of the source code.
+    - Return ```cpp your_code_here``` without any explanation.
     """
 
-    async def run(self, file: str, out: str):
-        code = read_file(file)
-        prompt = self.COMMON_PROMPT.format(code=code)
-        rsp = await RAGOptTech().aask(prompt)
+    async def run(self, code_file: str):
+        code = read_file(code_file)
+        loop_strategy = ""
+        for strat in LOOP_STRATS:
+            strat_name = f"{strat}_DESC"
+            strat_intro = globals()[strat_name]
+            loop_strategy += strat_intro
+        prompt = self.COMMON_PROMPT.format(
+            code_content=code,
+            loop_strategy=loop_strategy
+        )
+        rsp = await self._aask(prompt)
         code_text = parse_code(rsp)
-        write_file(code_text, out)
         return code_text
 
 
