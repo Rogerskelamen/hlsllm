@@ -55,12 +55,12 @@ class HLSEngineer(Role):
 
         if isinstance(todo, RepairHLSCode):
             msg = self.get_memories(k=1)[0]
-            resp = await todo.run(config.src_file, msg.content)
+            resp = await todo.run(DataConfig().src_file, msg.content)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         elif isinstance(todo, FixHLSCode):
             msg = self.get_memories(k=1)[0]
-            resp = await todo.run(config.src_file, msg.content)
+            resp = await todo.run(DataConfig().src_file, msg.content)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg
@@ -204,7 +204,7 @@ class HLSPerfAnalyzer(Role):
 
         # 选择优化策略
         if isinstance(todo, ChooseOpt):
-            resp = await todo.run(config.src_file)
+            resp = await todo.run(DataConfig().src_file)
             msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSPerfAnalyzer")
 
         # 应用优化策略
@@ -212,19 +212,13 @@ class HLSPerfAnalyzer(Role):
             context = self.get_memories(k=1)[0]
             opt_list = parse_opt_list(context.content)
             resp = await todo.run(
-                config.src_file,
-                config.head_file,
+                DataConfig().src_file,
+                DataConfig().head_file,
                 opt_list,
-                config.hls_src
+                DataConfig().hls_src
             )
             logger.info(f"{self._setting}: Apply all suitable optimizations")
             msg = Message(content="Apply all suitable optimizations", role=self.profile, cause_by=type(todo), send_to="HLSBuildAssistant")
-
-        # 优化的HLS代码综合失败，进行修复步骤
-        elif isinstance(todo, FixHLSOpt):
-            msg = self.get_memories(k=1)[0]
-            resp = await todo.run(HLS_OPT_CODE_FILE, msg)
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg
 
@@ -258,7 +252,7 @@ class HLSCodeReviewer(Role):
 
         # 应用内部循环的结构性优化
         if isinstance(todo, ApplyLoopStrategy):
-            resp = await todo.run(DataConfig().src_file)
+            resp = await todo.run(DataConfig().src_file, DataConfig().desc_file)
             cmd = [
                 "mv",
                 DataConfig().src_file,
