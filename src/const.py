@@ -22,11 +22,13 @@ BUILD_TCL_FILE         = BUILD_DIR / "build.tcl"
 BUILD_FUNC_NAME_FILE   = BUILD_DIR / "top.txt"
 BUILD_EXE_ELF_PATH     = BUILD_DIR / "main"
 BUILD_SYNTH_TCL_FILE   = BUILD_DIR / "synth.tcl"
-BUILD_REPORT_DIFF_FILE = BUILD_DIR / "perf.rpt"
+
+BUILD_REPORT_DIR       = BUILD_DIR / "report"
+BUILD_REPORT_DIFF_FILE = BUILD_REPORT_DIR / "perf.rpt"
 
 # Project related
 ORIGIN_SOLUTION_NAME = "solution1"
-LOOP_SOLUTION_NAME = "solution2"
+LOOP_SOLUTION_NAME   = "solution2"
 PRAGMA_SOLUTION_NAME = "solution3"
 
 # RAG related

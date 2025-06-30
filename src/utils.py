@@ -4,7 +4,7 @@ import shutil
 import subprocess
 
 from config import DataConfig
-from const import BUILD_DIR, BUILD_TCL_FILE, BUILD_REPORT_DIFF_FILE, BUILD_SYNTH_TCL_FILE, LOOP_SOLUTION_NAME, ORIGIN_SOLUTION_NAME
+from const import BUILD_DIR, BUILD_REPORT_DIR, BUILD_TCL_FILE, BUILD_REPORT_DIFF_FILE, BUILD_SYNTH_TCL_FILE, LOOP_SOLUTION_NAME, ORIGIN_SOLUTION_NAME
 
 def parse_code(rsp: str):
     pattern = r"```cpp(.*)```"
@@ -82,19 +82,6 @@ def parse_opt_list(input: str) -> list[str]:
     return None
 
 
-def cptb2hlsopt():
-    """copy files in build/algo to build/hls"""
-    # create directory if not exist
-    os.makedirs(BUILD_HLS_DIR, exist_ok=True)
-
-    for item in os.listdir(BUILD_ALGO_DIR):
-        src_path = os.path.join(BUILD_ALGO_DIR, item)
-        dst_path = os.path.join(BUILD_HLS_DIR, item)
-
-        # copy only if it's file type
-        if os.path.isfile(src_path):
-            shutil.copy2(src_path, dst_path)
-
 def report_output():
     project_path = BUILD_DIR / DataConfig().algo_name
     origin_report = project_path / ORIGIN_SOLUTION_NAME / "syn" / "report" / "csynth.rpt"
@@ -110,6 +97,8 @@ def report_output():
 
     {loop_opt_perf}
     """
+    if not os.path.exists(BUILD_REPORT_DIR):
+        os.makedirs(BUILD_REPORT_DIR)
     write_file(perf_diff, BUILD_REPORT_DIFF_FILE)
 
 

@@ -4,7 +4,7 @@ import textwrap
 from metagpt.actions import Action
 from hls.rag import RAGCodeStyle, RAGOptTech
 
-from utils import parse_code, read_file, cptb2hlsopt, write_file
+from utils import parse_code, read_file, write_file
 
 from const import BUILD_DIR, BUILD_SYNTH_TCL_FILE, BUILD_TCL_FILE, LOOP_STRATS, OPT_OPTIONS
 
@@ -246,7 +246,6 @@ class ApplyOpt(Action):
         print(pragma_demo_full)
         # rsp = await RAGOptTech().aask(prompt)
         rsp = await self._aask(prompt)
-        cptb2hlsopt()
         code_text = parse_code(rsp)
         write_file(code_text, hls_src)
         return code_text

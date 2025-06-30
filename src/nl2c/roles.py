@@ -97,8 +97,8 @@ class CTestExecutor(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self._watch([WriteAlgorithmCode, FixCompileErr, FixCCode])
         self.set_actions([CompileCCode, RunCCode])
+        self._watch([WriteAlgorithmCode, FixCompileErr, FixCCode])
 
 
     async def _think(self) -> bool:
