@@ -8,3 +8,5 @@
 !Makefile
 !requirements.txt
 !rag/*
+
+!script/*.sh

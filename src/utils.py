@@ -1,6 +1,5 @@
 import re
 import os
-import shutil
 import subprocess
 
 from config import DataConfig

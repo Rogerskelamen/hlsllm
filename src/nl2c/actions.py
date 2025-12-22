@@ -5,6 +5,7 @@ from typing import List
 from metagpt.actions import Action
 from metagpt.logs import logger
 
+from record import Recorder
 from utils import (
     parse_code,
     read_file,
@@ -92,6 +93,7 @@ class FixCompileErr(Action):
     """
 
     async def run(self, error: str, src_file: str):
+        Recorder().record(self.name)
         code = read_file(src_file)
         prompt = self.COMMON_PROMPT.format(code=code, msg=error)
         rsp = await self._aask(prompt)
@@ -136,6 +138,7 @@ class FixCCode(Action):
     """
 
     async def run(self, error: str, src_file: str, head_file: str, desc_file: str):
+        Recorder().record(self.name)
         code = read_file(src_file)
         algo_desc = read_file(desc_file)
         header = read_file(head_file)

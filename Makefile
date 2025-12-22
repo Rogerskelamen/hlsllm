@@ -3,6 +3,7 @@ DEFAULT := $(DATASET)/dsp/fir
 
 BUILD := $(abspath ./build)
 OUT := $(abspath ./out)
+RESULT := $(abspath ./result.txt)
 
 ALL := $(shell find $(DATASET) -mindepth 2 -maxdepth 2 -type d)
 
@@ -18,8 +19,15 @@ run: $(ALL)
 		python3 src/main.py --algo_path $$d; \
 	done
 
+runGen: $(ALL)
+	-rm -rf $(OUT)
+	-rm -f $(RESULT)
+	-mkdir -p $(OUT)
+	@script/generate.sh $^
+
 clean:
 	-rm -rf $(BUILD)
+	-rm -rf $(RESULT)
 	-rm -rf vitis_hls.log
 
 count:

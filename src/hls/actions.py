@@ -4,6 +4,7 @@ import textwrap
 from metagpt.actions import Action
 from hls.rag import RAGCodeStyle, RAGOptTech
 
+from record import Recorder
 from utils import parse_code, read_file, write_file
 
 from const import BUILD_DIR, BUILD_SYNTH_TCL_FILE, BUILD_TCL_FILE, LOOP_STRATS, OPT_OPTIONS
@@ -102,6 +103,7 @@ class RepairHLSCode(Action):
     """
 
     async def run(self, file: str, msg: str):
+        Recorder().record(self.name)
         code = read_file(file)
         prompt = self.COMMON_PROMPT.format(code=code, msg=msg)
         rsp = await RAGCodeStyle().aask(prompt)
@@ -137,6 +139,7 @@ class FixHLSCode(Action):
     """
 
     async def run(self, file: str, msg: str):
+        Recorder().record(self.name)
         code = read_file(file)
         prompt = self.COMMON_PROMPT.format(code=code, msg=msg)
         rsp = await RAGCodeStyle().aask(prompt)
@@ -300,6 +303,11 @@ class ApplyLoopStrategy(Action):
         return code_text
 
 
+class FindArgs(Action):
+    name: str = ""
+
+
+
 class FixHLSOpt(Action):
     name: str = "FixHLSOpt"
 
@@ -329,38 +337,4 @@ class FixHLSOpt(Action):
         write_file(code_text, file)
         return code_text
 
-
-class SynthHLSOpt(Action):
-    name: str = "SynthHLSOpt"
-
-    SET_PROJ_TCL: str = textwrap.dedent("""
-    open_project {proj_name}
-    set_top {top_func}
-    add_files {src_file}
-    open_solution solution1
-    set_part {part}
-    create_clock -period 10 -name default
-    csynth_design
-    exit
-    """)
-
-    async def run(self, proj_name: str, top_func: str, src_file: str, part: str, tcl_file: str):
-        top_func = read_file(top_func)
-        tcl = self.SET_PROJ_TCL.format(
-            proj_name=proj_name,
-            top_func=top_func,
-            src_file=src_file,
-            part=part
-        ).strip()
-        write_file(tcl, tcl_file)
-
-        cmd = ["vitis_hls", "-f", tcl_file]
-        try:
-            subprocess.run(cmd, capture_output=True, text=True, check=True)
-            print("✅ Synthesis Completed Successfully!\n")
-            return None
-        except subprocess.CalledProcessError as e:
-            print("❌ Synthesis Failed.")
-            # 综合失败，处理输出结果
-            return e.stdout
 

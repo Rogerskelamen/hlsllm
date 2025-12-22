@@ -1,10 +1,10 @@
 import fire
-import os
+import os, sys
 
 from metagpt.team import Team
 
 from config import DataConfig
-from const import BUILD_DIR
+from const import BUILD_DIR, RESULT_TXT
 
 from hls.roles import (
     HLSCodeReviewer,
@@ -17,6 +17,7 @@ from nl2c.roles import (
     CTestExecutor,
 )
 
+from record import Recorder
 from utils import pre_handle_testbench, read_file
 
 async def main(
@@ -26,6 +27,7 @@ async def main(
 ):
     # preprocess
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
+    Recorder().reset()
 
     # copy target directory to local
     algo_name = pre_handle_testbench(algo_path)
@@ -48,13 +50,17 @@ async def main(
         CTestExecutor(),
         HLSEngineer(),
         HLSBuildAssistant(),
-        HLSCodeReviewer(),
+        # HLSCodeReviewer(),
         # HLSPerfAnalyzer(),
     ])
 
     team.invest(investment=investment)
     team.run_project(read_file(algo_desc))
     await team.run(n_round=n_round)
+
+    action_calls = Recorder().get_action_calls()
+    with open(RESULT_TXT, 'a', encoding='utf-8') as file:
+        file.write(str(action_calls) + '\n')
 
 
 if __name__ == "__main__":

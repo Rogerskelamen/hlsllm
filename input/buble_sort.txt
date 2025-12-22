@@ -1,8 +1,0 @@
-Implement bubble sorting algorithm to sort an array of integers in ascending order. The array size is 5.
-
-The function prototype:
-
-```cpp
-void bubble_sort(int array[SIZE]);
-```
-

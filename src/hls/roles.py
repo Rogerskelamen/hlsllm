@@ -14,7 +14,6 @@ from hls.actions import (
     FixHLSOpt,
     RepairHLSCode,
     SynthHLSCode,
-    SynthHLSOpt
 )
 from utils import build_with_other_solution, parse_opt_list, report_output, synth_tcl_gen, write_file
 
@@ -78,7 +77,7 @@ class HLSBuildAssistant(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([SynthHLSCode, CosimHLSCode, SynthHLSOpt])
+        self.set_actions([SynthHLSCode, CosimHLSCode])
         self._watch([RepairHLSCode, FixHLSCode, ApplyLoopStrategy, ApplyOpt, FixHLSOpt])
 
     async def _think(self) -> bool:
@@ -137,7 +136,7 @@ class HLSBuildAssistant(Role):
                         role=self.profile,
                         cause_by=type(todo),
                         # send_to="HLSPerfAnalyzer",
-                        send_to="HLSCodeReviewer",
+                        # send_to="HLSCodeReviewer",
                     )
                     ###
                     #### 保存协同仿真成功的数据集
@@ -186,9 +185,6 @@ class HLSPerfAnalyzer(Role):
 
         elif msg.cause_by == "hls.actions.ChooseOpt":
             self._set_state(self.find_state("ApplyOpt"))
-
-        elif msg.cause_by == "hls.actions.SynthHLSOpt":
-            self._set_state(self.find_state("FixHLSOpt"))
 
         else:
             self._set_state(-1)
@@ -270,3 +266,18 @@ class HLSCodeReviewer(Role):
             msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg
+
+
+class HLSTypeRefactor(Role):
+    name: str = "HLSTypeRefactor"
+    profile: str = "convert C data type to HLS data type"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.set_actions([])
+        self._watch([])
+
+    async def _think(self) -> bool:
+        return True
+
+

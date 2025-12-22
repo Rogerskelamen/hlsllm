@@ -31,6 +31,9 @@ ORIGIN_SOLUTION_NAME = "solution1"
 LOOP_SOLUTION_NAME   = "solution2"
 PRAGMA_SOLUTION_NAME = "solution3"
 
+# Batch result file
+RESULT_TXT = ROOT_PATH / "result.txt"
+
 # RAG related
 RAG_PATH = ROOT_PATH / "rag"
 RAG_CODE_STYLE_PATH = RAG_PATH / "ug1399-code-style.pdf"

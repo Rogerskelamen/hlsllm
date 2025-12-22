@@ -1,1 +1,0 @@
-Implement the Breadth-First Search (BFS) algorithm. The top function name is `bfs`.
