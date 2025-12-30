@@ -1,5 +1,5 @@
 import fire
-import os, sys
+import os
 
 from metagpt.team import Team
 
@@ -7,14 +7,17 @@ from config import DataConfig
 from const import BUILD_DIR, RESULT_TXT
 
 from hls.roles import (
-    HLSCodeReviewer,
     HLSEngineer,
-    HLSPerfAnalyzer,
     HLSBuildAssistant
 )
 from nl2c.roles import (
     CodeProgrammer,
     CTestExecutor,
+)
+from opt.roles import (
+    HLSCodeReviewer,
+    HLSHardNormalizer,
+    HLSPerfAnalyzer
 )
 
 from record import Recorder
@@ -22,6 +25,7 @@ from utils import pre_handle_testbench, read_file
 
 async def main(
     algo_path: str,
+    type: str = "gen",
     investment: float = 3.0,
     n_round: int = 8,
 ):
@@ -30,7 +34,7 @@ async def main(
     Recorder().reset()
 
     # copy target directory to local
-    algo_name = pre_handle_testbench(algo_path)
+    algo_name = pre_handle_testbench(algo_path, type == "gen")
 
     # store algorithm name and other files
     DataConfig(
@@ -45,23 +49,35 @@ async def main(
     algo_desc = BUILD_DIR / f"{algo_name}.md"
 
     team = Team()
-    team.hire([
-        CodeProgrammer(),
-        CTestExecutor(),
-        HLSEngineer(),
-        HLSBuildAssistant(),
-        # HLSCodeReviewer(),
-        # HLSPerfAnalyzer(),
-    ])
 
-    team.invest(investment=investment)
-    team.run_project(read_file(algo_desc))
-    await team.run(n_round=n_round)
+    if type == "gen":
+        team.hire([
+            CodeProgrammer(),
+            CTestExecutor(),
+            HLSEngineer(),
+            HLSBuildAssistant(),
+        ])
 
-    action_calls = Recorder().get_action_calls()
-    with open(RESULT_TXT, 'a', encoding='utf-8') as file:
-        file.write(str(action_calls) + '\n')
+        team.invest(investment=investment)
+        team.run_project(read_file(algo_desc))
+        await team.run(n_round=n_round)
 
+        action_calls = Recorder().get_action_calls()
+        with open(RESULT_TXT, 'a', encoding='utf-8') as file:
+            file.write(str(action_calls) + '\n')
+
+    elif type == "opt":
+        team.hire([
+            HLSEngineer(),
+            HLSBuildAssistant(),
+            HLSHardNormalizer(),
+            # HLSCodeReviewer(),
+            # HLSPerfAnalyzer(),
+        ])
+
+        team.invest(investment=investment)
+        team.run_project("")
+        await team.run(n_round=n_round)
 
 if __name__ == "__main__":
     fire.Fire(main)

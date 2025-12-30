@@ -46,12 +46,13 @@ def write_file(content: str, path: str) -> None:
         print(f"Error writing to file {path}: {e}")
 
 
-def pre_handle_testbench(path: str) -> str:
+def pre_handle_testbench(path: str, isRM: bool) -> str:
     # 1. copy testbench
-    subprocess.run(["cp", path, "-r", BUILD_DIR])
+    subprocess.run(["cp", "-r", path, BUILD_DIR])
     # 2. remove algorithm source file
     algo_name = os.path.basename(path.rstrip('/'))
-    subprocess.run(["rm", BUILD_DIR / (algo_name + ".cpp")])
+    if isRM:
+        subprocess.run(["rm", BUILD_DIR / (algo_name + ".cpp")])
     return algo_name
 
 

@@ -1,4 +1,5 @@
-LOOP_MERGING_DESC = """
+LOOP_MERGING_DESC = \
+"""
 
 Loop merging strategy
 
@@ -39,7 +40,8 @@ for (int i = 0; i < 100; ++i) {
 ```
 """
 
-LOOP_INTERCHANGE_DESC = """
+LOOP_INTERCHANGE_DESC = \
+"""
 
 Loop interchange strategy
 
@@ -77,7 +79,8 @@ for (int i = 0; i < M; ++i) {
 ```
 """
 
-LOOP_TILING_DESC = """
+LOOP_TILING_DESC = \
+"""
 
 Loop tiling strategy
 

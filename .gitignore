@@ -4,7 +4,6 @@
 
 !*.py
 !.gitignore
-!input/*.txt
 !Makefile
 !requirements.txt
 !rag/*
