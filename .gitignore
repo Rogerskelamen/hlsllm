@@ -8,4 +8,4 @@
 !requirements.txt
 !rag/*
 
-!script/*.sh
+!scripts/*.sh

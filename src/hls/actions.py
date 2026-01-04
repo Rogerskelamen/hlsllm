@@ -8,9 +8,6 @@ from utils import parse_code, read_file, write_file
 
 from const import BUILD_DIR, BUILD_SYNTH_TCL_FILE, BUILD_TCL_FILE
 
-from prompt.pragma import *
-from prompt.loop import *
-
 class SynthHLSCode(Action):
     name: str = "SynthHLSCode"
 

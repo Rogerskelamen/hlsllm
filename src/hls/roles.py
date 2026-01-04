@@ -4,6 +4,7 @@ from metagpt.logs import logger
 from metagpt.schema import Message
 
 from config import DataConfig
+from const import BUILD_DIR
 from hls.actions import (
     SynthHLSCode,
     CosimHLSCode,
@@ -28,7 +29,7 @@ class HLSEngineer(Role):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([RepairHLSCode, FixHLSCode])
+        self.set_actions([RepairHLSCode, FixHLSCode, FixHLSOpt])
         self._watch([])
 
     async def _think(self) -> bool:
@@ -112,6 +113,7 @@ class HLSBuildAssistant(Role):
         todo = self.rc.todo
         msg = self.get_memories(k=1)[0]
 
+        # 综合HLS代码
         if isinstance(todo, SynthHLSCode):
             synth_tcl_gen()
             resp = await todo.run()
@@ -130,6 +132,7 @@ class HLSBuildAssistant(Role):
             else:
                 msg = Message(content=resp, role=self.profile, cause_by=type(todo), send_to="HLSEngineer")
 
+        # 协同仿真测试
         elif isinstance(todo, CosimHLSCode):
             # 第一次协同仿真测试
             if msg.cause_by == "hls.actions.SynthHLSCode":
@@ -166,6 +169,7 @@ class HLSBuildAssistant(Role):
                         content="HLS C/RTL Cosimulation passed!",
                         role=self.profile,
                         cause_by=type(todo),
+                        send_to="HLSFuncOptimizer"
                     )
 
             # Loop优化完成后第三次协同仿真
@@ -178,8 +182,26 @@ class HLSBuildAssistant(Role):
                         content="HLS C/RTL Cosimulation passed!",
                         role=self.profile,
                         cause_by=type(todo),
+                        send_to="HLSPerfAnalyzer"
                     )
-                    report_output()  # output Synthesis report to a certain file to compare
+                    # report_output()  # output Synthesis report to a certain file to compare
+
+            # 应用优化指令后第四次协同仿真
+            elif msg.cause_by == "opt.actions.pragma.ApplyOpt":
+                resp = await todo.run()
+                # HLS协同仿真成功
+                if not resp:
+                    logger.info(f"{self._setting}: HLS C/RTL Cosimulation passed!")
+                    msg = Message(
+                        content="HLS C/RTL Cosimulation passed!",
+                        role=self.profile,
+                        cause_by=type(todo),
+                    )
+                    subprocess.run([
+                        "touch",
+                        BUILD_DIR,
+                        "success.txt"
+                    ])
 
             else:
                 raise ValueError(f"Unexpected message sender {msg.cause_by}")

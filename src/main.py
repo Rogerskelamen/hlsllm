@@ -15,7 +15,7 @@ from nl2c.roles import (
     CTestExecutor,
 )
 from opt.roles import (
-    HLSCodeReviewer,
+    HLSFuncOptimizer,
     HLSHardNormalizer,
     HLSPerfAnalyzer
 )
@@ -71,8 +71,8 @@ async def main(
             HLSEngineer(),
             HLSBuildAssistant(),
             HLSHardNormalizer(),
-            # HLSCodeReviewer(),
-            # HLSPerfAnalyzer(),
+            HLSFuncOptimizer(),
+            HLSPerfAnalyzer(),
         ])
 
         team.invest(investment=investment)

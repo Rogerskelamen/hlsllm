@@ -6,7 +6,6 @@ from metagpt.schema import Message
 
 from config import DataConfig
 from const import LOOP_SOLUTION_NAME
-from hls.actions import FixHLSOpt
 from opt.actions.loop import ApplyLoopStrategy
 from opt.actions.pragma import ApplyOpt, ChooseOpt
 from opt.actions.preprocess import PreprocessHLSCode
@@ -31,13 +30,63 @@ class HLSHardNormalizer(Role):
         return msg
 
 
+class HLSFuncOptimizer(Role):
+    name: str = "HLSFuncOptimizer"
+    profile: str = "review hls code functions then change function structure to improve performance"
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.set_actions([ApplyLoopStrategy])
+        self._watch([])
+
+    async def _think(self) -> bool:
+        msg = self.get_memories(k=1)[0]
+
+        if msg.cause_by == "hls.actions.CosimHLSCode":
+            self._set_state(self.find_state("ApplyLoopStrategy"))
+
+        else:
+            self._set_state(-1)
+            logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
+            raise ValueError(f"Unexpected message: {msg}")
+
+        return True
+
+
+    async def _act(self) -> Message:
+        logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
+        todo = self.rc.todo
+
+        # 应用内部循环的结构性优化
+        if isinstance(todo, ApplyLoopStrategy):
+            await todo.run(DataConfig().src_file)
+            # resp = await todo.run(DataConfig().src_file)
+            # cmd = [
+            #     "mv",
+            #     DataConfig().src_file,
+            #     DataConfig().get_origin_src_file()
+            # ]
+            # subprocess.run(
+            #     cmd,
+            #     capture_output=True,
+            #     text=True
+            # )
+            # save loop optimization code
+            # write_file(resp, DataConfig().src_file)
+            # change build.tcl(mainly solution name)
+            # build_with_other_solution(LOOP_SOLUTION_NAME)
+            msg = Message(content="apply all loop strategies", role=self.profile, cause_by=type(todo), send_to="HLSBuildAssistant")
+
+        return msg
+
+
 class HLSPerfAnalyzer(Role):
     name: str = "HLSPerfAnalyzer"
     profile: str = "hls performance analyzer"
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.set_actions([ChooseOpt, ApplyOpt, FixHLSOpt])
+        self.set_actions([ChooseOpt, ApplyOpt])
         self._watch([])
 
     async def _think(self) -> bool:
@@ -46,7 +95,7 @@ class HLSPerfAnalyzer(Role):
         if msg.cause_by == "hls.actions.CosimHLSCode":
             self._set_state(self.find_state("ChooseOpt"))
 
-        elif msg.cause_by == "hls.actions.ChooseOpt":
+        elif msg.cause_by == "opt.actions.pragma.ChooseOpt":
             self._set_state(self.find_state("ApplyOpt"))
 
         else:
@@ -74,59 +123,8 @@ class HLSPerfAnalyzer(Role):
                 DataConfig().src_file,
                 DataConfig().head_file,
                 opt_list,
-                DataConfig().hls_src
             )
-            logger.info(f"{self._setting}: Apply all suitable optimizations")
             msg = Message(content="Apply all suitable optimizations", role=self.profile, cause_by=type(todo), send_to="HLSBuildAssistant")
-
-        return msg
-
-
-class HLSCodeReviewer(Role):
-    name: str = "HLSCodeReviewer"
-    profile: str = "review hls code then change code structure to improve performance"
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.set_actions([ApplyLoopStrategy])
-        self._watch([])
-
-    async def _think(self) -> bool:
-        msg = self.get_memories(k=1)[0]
-
-        if msg.cause_by == "hls.actions.CosimHLSCode":
-            self._set_state(self.find_state("ApplyLoopStrategy"))
-
-        else:
-            self._set_state(-1)
-            logger.info(f"{self._setting}: can't find an action to handle message [{msg.content}]")
-            raise ValueError(f"Unexpected message: {msg}")
-
-        return True
-
-
-    async def _act(self) -> Message:
-        logger.info(f"{self._setting}: to do {self.todo}({self.todo.name})")
-        todo = self.rc.todo
-
-        # 应用内部循环的结构性优化
-        if isinstance(todo, ApplyLoopStrategy):
-            resp = await todo.run(DataConfig().src_file, DataConfig().desc_file)
-            cmd = [
-                "mv",
-                DataConfig().src_file,
-                DataConfig().get_origin_src_file()
-            ]
-            subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True
-            )
-            # save loop optimization code
-            write_file(resp, DataConfig().src_file)
-            # change build.tcl(mainly solution name)
-            build_with_other_solution(LOOP_SOLUTION_NAME)
-            msg = Message(content=resp, role=self.profile, cause_by=type(todo))
 
         return msg
 

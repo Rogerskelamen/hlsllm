@@ -46,7 +46,7 @@ LOOP_INTERCHANGE_DESC = \
 Loop interchange strategy
 
 Concept:
-Loop interchange is a high-level synthesis (HLS) optimization technique that exchanges the order of nested loops to improve memory access patterns, pipeline efficiency, and parallelism. By adjusting the loop hierarchy, it can reduce memory access strides, enhance spatial/temporal locality, and improve performance on array-based computations.
+Loop interchange is a high-level synthesis (HLS) optimization technique that exchanges the order of nested loops to improve memory access patterns, pipeline efficiency, and parallelism. By adjusting the loop hierarchy, it can reduce memory access strides, enhance spatial/temporal locality, and improve performance on array-based computations. However, loop interchange is ONLY legal if the transformation preserves the original algorithmic semantics, especially reduction behavior and per-iteration independence.
 
 Apply Scenario:
 - Apply this strategy if:
@@ -60,6 +60,11 @@ Apply Rule:
 - Prefer interchanging loops so that the **innermost loop accesses contiguous memory addresses**;
 - Ensure that changing the order of loops **does not violate data dependencies or affect correctness**;
 - After interchange, consider applying `#pragma HLS pipeline` to the innermost loop for better performance.
+
+Forbidden Scenarios (DO NOT APPLY):
+- Loops where an accumulator is reset in the outer loop and updated in the inner loop.
+- Loops implementing statistical tests, reductions, histograms, or block-wise metrics.
+- Loops where interchange would change the meaning of “one iteration = one logical unit”.
 
 Example:
 ```cpp

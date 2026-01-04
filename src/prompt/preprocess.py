@@ -1,14 +1,17 @@
 STATIC_INTERN_ARRAY = \
 """
+
 Static Internal Array Canonicalization
 
 Description:
-Convert eligible function-local arrays into static storage to make memory lifetime explicit and hardware-like.
+Convert eligible *purely internal* function-local arrays into static storage to make memory lifetime explicit and hardware-like.
+This transformation must preserve not only algorithmic behavior, but also the input/output temporal semantics of the kernel.
 This avoids runtime initialization overhead and allows the memory to be initialized directly in the bitstream.
 This is a structural canonicalization step, not a performance optimization.
 
 Applicable Scenarios:
-- The array is declared inside a function.
+- The array is declared inside the function AND is NOT a kernel interface argument.
+- The array does NOT alias, shadow, or mirror any kernel parameter array.
 - The array size is compile-time constant.
 - The function is not invoked concurrently (e.g., not replicated in a dataflow region).
 - The array does not need to be reset on each function call.
@@ -24,7 +27,7 @@ Example:
 ```
 // before
 void filter(int in[256], int out[256]) {
-    int buf[256];
+    static int buf[256];
     for (int i = 0; i < 256; i++) {
         buf[i] = in[i];
         out[i] = buf[i] * 2;
@@ -43,52 +46,49 @@ void filter(int in[256], int out[256]) {
 
 HLS_INTRINSIC_FUNCTION = \
 """
+
 HLS Intrinsic Function Replacement
 
 Description:
-Replace manually implemented logic with HLS-provided intrinsic functions to make hardware intent explicit and improve synthesis predictability.
-This transformation focuses on math operations and streaming behavior and does not change algorithmic behavior.
+Replace manually implemented logic with equivalent HLS-provided intrinsic functions in order to make hardware intent explicit and improve synthesis predictability.
+This transformation is purely structural and must not change algorithmic behavior.
 
 Applicable Scenarios:
-- Manual logic implements common math operations (e.g., absolute value, min/max).
-- FIFO-like or producer–consumer behavior is implemented using arrays or indices.
-- Equivalent HLS intrinsic functions (hls::abs, hls::min, hls::max, hls::stream) exist.
+- Manual logic implements standard math operations such as absolute value, minimum, or maximum.
+- FIFO-like or producer–consumer behavior is implemented using arrays and explicit read/write indices.
+- A semantically equivalent HLS intrinsic function exists (e.g., hls::abs, hls::min, hls::max, hls::stream).
 
 How to Apply:
-- Replace manual math logic with equivalent HLS math intrinsics.
-- Replace FIFO-style array/index logic with hls::stream.
-- Preserve data types and original control behavior.
-- Do not introduce pragmas or additional buffering.
+- Replace manual math logic with the corresponding HLS math intrinsic.
+- Replace FIFO-style array/index-based buffering with hls::stream where semantics match.
+- Preserve original data types and control behavior.
+- Do not introduce pragmas, additional buffering, or algorithmic changes.
 
 Example:
-math library
-```
+Math intrinsic replacement
+
+```c
 // Before
 int diff = (x > y) ? (x - y) : (y - x);
+
 // After
 #include "hls_math.h"
 int diff = hls::abs(x - y);
 ```
 
-other intrinsic function include:
-Trigonometric Functions
-acos, asin, atan, sin, cos, tan
-Hyperbolic Functions
-acosh, asinh, atanh, sinh, cosh, tanh
-Exponential Functions
-exp, exp10, exp2
-Logarithmic Functions
-ilogb, lob, log10, log1p
-Power Functions
-cbrt, hypot, pow, sqrt
-Rounding Functions
-ceil, floor, round
-Other Functions
-abs, divide, fabs
+Supported Intrinsic Categories:
+Trigonometric: acos, asin, atan, sin, cos, tan
+Hyperbolic: acosh, asinh, atanh, sinh, cosh, tanh
+Exponential: exp, exp10, exp2
+Logarithmic: ilogb, log, log10, log1p
+Power: cbrt, hypot, pow, sqrt
+Rounding: ceil, floor, round
+Other: abs, divide, fabs
 """
 
 CONTROL_FLOW_CANONICAL = \
 """
+
 Control-Flow Canonicalization
 
 Description:
@@ -130,6 +130,7 @@ int foo(int a, int b) {
 
 MEMORY_ACCESS_LINEAR = \
 """
+
 Memory Access Linearization
 
 Description:
@@ -157,6 +158,7 @@ int val = A[i][j];
 int A[64][64];
 int idx = i * 64 + j;
 int val = ((int*)A)[idx];
+
 // Before
 int val = A[f(i)][g(j)];
 // After
