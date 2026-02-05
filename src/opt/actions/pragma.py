@@ -73,6 +73,7 @@ class ApplyOpt(Action):
 
     [Requirements]
     - Use `complete` array partitioning ONLY when the array dimension is small (typically ≤ 20). For larger arrays, consider using `block` or `cyclic` partitioning to balance parallelism and resource utilization.
+    - For any single loop, #pragma HLS UNROLL (especially complete unroll) and #pragma HLS PIPELINE are mutually exclusive. You must choose only one optimization for each loop
     - Ensure the array_partition pragma is inserted right after the array is declared, not before or elsewhere.
     - Prefer inserting `#pragma HLS pipeline` in the innermost loop to maximize pipelining efficiency, unless the loop has very few iterations, in which case pipelining may not be beneficial.
     - Analyze the algorithm and insert pragmas only where appropriate, based on the purpose and scope described in the usage examples.
